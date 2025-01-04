@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:logger/logger.dart';
 import '../models/recipe.dart';
 import '../providers/recipe_provider.dart';
 import 'recipe_detail_screen.dart';
@@ -14,6 +15,8 @@ class RecipeListScreen extends StatefulWidget {
 
 class _RecipeListScreenState extends State<RecipeListScreen>
     with SingleTickerProviderStateMixin {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _logger = Logger();
   late TabController _tabController;
 
   @override
@@ -34,18 +37,30 @@ class _RecipeListScreenState extends State<RecipeListScreen>
       builder: (context, recipeProvider, child) {
         if (recipeProvider.currentMachineId == null) {
           return Scaffold(
-            appBar: AppBar(title: Text('Recipe Management')),
+            key: _scaffoldKey,
+            appBar: AppBar(
+              title: Text('Recipe Management'),
+              leading: IconButton(
+                icon: Icon(Icons.menu),
+                onPressed: () {
+                  _logger.i('Opening app drawer from RecipeListScreen');
+                  _scaffoldKey.currentState?.openDrawer();
+                },
+              ),
+            ),
             drawer: AppDrawer(),
             body: Center(child: Text('Please select a machine first')),
           );
         }
 
         return Scaffold(
+          key: _scaffoldKey,
           appBar: AppBar(
             leading: IconButton(
               icon: Icon(Icons.menu),
               onPressed: () {
-                Scaffold.of(context).openDrawer();
+                _logger.i('Opening app drawer from RecipeListScreen');
+                _scaffoldKey.currentState?.openDrawer();
               },
             ),
             title: Text(
@@ -247,7 +262,7 @@ class _RecipeListScreenState extends State<RecipeListScreen>
                 ...[
                   Text('Description:',
                       style: TextStyle(fontWeight: FontWeight.bold)),
-                  Text(recipe.description!),
+                  Text(recipe.description),
                   SizedBox(height: 16),
                 ],
                 Text('Substrate: ${recipe.substrate}'),
