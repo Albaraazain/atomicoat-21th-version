@@ -6,6 +6,7 @@ import '../../features/components/providers/component_provider.dart';
 import '../../features/process/providers/process_provider.dart';
 import '../../features/experiments/providers/experiment_provider.dart';
 import '../../features/recipes/providers/recipe_provider.dart';
+import '../../features/machines/providers/machine_provider.dart';
 
 class ProviderConfig {
   static final List<SingleChildWidget> providers = [
@@ -14,5 +15,6 @@ class ProviderConfig {
     ChangeNotifierProvider(create: (_) => ProcessProvider()),
     ChangeNotifierProvider(create: (_) => ExperimentProvider()),
     ChangeNotifierProvider(create: (_) => RecipeProvider()),
+    ChangeNotifierProvider(create: (_) => MachineProvider()),
   ];
 }
