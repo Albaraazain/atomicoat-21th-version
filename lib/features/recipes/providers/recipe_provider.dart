@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../models/recipe.dart';
-import '../models/recipe_step.dart';
 
 class RecipeProvider extends ChangeNotifier {
   String? currentUserId = 'mock_user_1';
