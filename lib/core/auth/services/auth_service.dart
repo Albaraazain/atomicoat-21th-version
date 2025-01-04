@@ -24,7 +24,8 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   // Sign in with email and password
-  Future<User?> signIn({required String email, required String password}) async {
+  Future<User?> signIn(
+      {required String email, required String password}) async {
     try {
       _logger.i('Attempting sign in for user: $email');
 
@@ -38,7 +39,8 @@ class AuthService {
         _logger.i('Sign in successful for user: ${user.uid}');
 
         // Check if user document exists
-        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        final userDoc =
+            await _firestore.collection('users').doc(user.uid).get();
 
         if (!userDoc.exists) {
           _logger.w('User document not found, creating new document');
@@ -191,7 +193,8 @@ class AuthService {
       await _auth.sendPasswordResetEmail(email: email);
       _logger.i('Password reset email sent successfully');
     } catch (e, stackTrace) {
-      _logger.e('Error sending password reset email', error: e, stackTrace: stackTrace);
+      _logger.e('Error sending password reset email',
+          error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
@@ -218,14 +221,16 @@ class AuthService {
       await _firestore.collection('users').doc(user.uid).set(userData);
       _logger.i('User document created successfully');
     } catch (e, stackTrace) {
-      _logger.e('Error creating user document', error: e, stackTrace: stackTrace);
+      _logger.e('Error creating user document',
+          error: e, stackTrace: stackTrace);
       rethrow;
     }
   }
 
   Future<bool> _validateMachineSerial(String serial) async {
     // TODO: Implement actual machine serial validation
-    _logger.w('Machine serial validation not implemented, returning true for testing');
+    _logger.w(
+        'Machine serial validation not implemented, returning true for testing');
     return true;
   }
 
