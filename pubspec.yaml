@@ -58,6 +58,7 @@ dependencies:
   logger: ^2.0.2+1
 
   equatable: any
+  flutter_launcher_icons: ^0.14.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -76,3 +77,10 @@ flutter:
   assets:
     - assets/ald_system_diagram.png
     - assets/initial_components.json
+    - assets/atomicoat_app_icon.png
+
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/atomicoat_app_icon.png"
