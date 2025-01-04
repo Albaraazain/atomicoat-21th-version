@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/process_provider.dart';
-import '../models/process_execution.dart';
 import '../../experiments/screens/experiment_detail_screen.dart';
 
 class ProcessHistoryScreen extends StatefulWidget {
