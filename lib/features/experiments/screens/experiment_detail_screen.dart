@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/experiment_provider.dart';
 import '../widgets/parameter_trend_chart.dart';
 import '../widgets/process_timeline.dart';
 
