@@ -12,6 +12,7 @@ import '../../features/experiments/screens/experiment_list_screen.dart';
 import '../../features/experiments/screens/experiment_details_screen.dart';
 import '../../features/recipes/screens/recipe_creation_screen.dart';
 import '../../core/auth/screens/login_screen.dart';
+import '../../features/settings/screens/settings_screen.dart';
 
 class RouteConfig {
   // Auth routes
@@ -42,6 +43,9 @@ class RouteConfig {
   static const String recipeDetailsRoute = '/recipes/details';
   static const String recipeCreateRoute = '/recipes/create';
 
+  // Settings route
+  static const String settingsRoute = '/settings';
+
   static Map<String, Widget Function(BuildContext)> routes = {
     loginRoute: (context) => const LoginScreen(),
     mainDashboardRoute: (context) => const MachineDashboard(),
@@ -50,60 +54,49 @@ class RouteConfig {
     processListRoute: (context) => const ProcessListScreen(),
     experimentListRoute: (context) => const ExperimentListScreen(),
     recipeListRoute: (context) => const RecipeListScreen(),
+    settingsRoute: (context) => const SettingsScreen(),
   };
 
-  static Route<dynamic> generateRoute(RouteSettings settings) {
+  static Route<dynamic>? generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case machineDetailsRoute:
-        final machineId = settings.arguments as String;
         return MaterialPageRoute(
-          builder: (context) => MachineDetailsScreen(machineId: machineId),
-        );
-
-      case machineEditRoute:
-        final machineId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (context) => MachineEditScreen(machineId: machineId),
-        );
-
-      case processDetailsRoute:
-        final processId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (context) => ProcessDetailsScreen(processId: processId),
-        );
-
-      case processMonitoringRoute:
-        final processId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (context) => ProcessMonitoringScreen(processId: processId),
-        );
-
-      case experimentDetailsRoute:
-        final experimentId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (context) =>
-              ExperimentDetailsScreen(experimentId: experimentId),
-        );
-
-      case recipeDetailsRoute:
-        return MaterialPageRoute(
-          builder: (context) => RecipeListScreen(),
-        );
-
-      case recipeCreateRoute:
-        final machineId = settings.arguments as String;
-        return MaterialPageRoute(
-          builder: (context) => RecipeCreationScreen(machineId: machineId),
-        );
-
-      default:
-        return MaterialPageRoute(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: Text('Route ${settings.name} not found'),
-            ),
+          builder: (_) => MachineDetailsScreen(
+            machineId: settings.arguments as String,
           ),
         );
+      case machineEditRoute:
+        return MaterialPageRoute(
+          builder: (_) => MachineEditScreen(
+            machineId: settings.arguments as String,
+          ),
+        );
+      case processDetailsRoute:
+        return MaterialPageRoute(
+          builder: (_) => ProcessDetailsScreen(
+            processId: settings.arguments as String,
+          ),
+        );
+      case processMonitoringRoute:
+        return MaterialPageRoute(
+          builder: (_) => ProcessMonitoringScreen(
+            processId: settings.arguments as String,
+          ),
+        );
+      case experimentDetailsRoute:
+        return MaterialPageRoute(
+          builder: (_) => ExperimentDetailsScreen(
+            experimentId: settings.arguments as String,
+          ),
+        );
+      case recipeCreateRoute:
+        return MaterialPageRoute(
+          builder: (_) => RecipeCreationScreen(
+            machineId: settings.arguments as String,
+          ),
+        );
+      default:
+        return null;
     }
   }
 }
