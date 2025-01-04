@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:logger/logger.dart';
 import '../providers/process_provider.dart';
 import '../models/process_execution.dart';
 import '../../../core/config/route_config.dart';
 import '../../../widgets/app_drawer.dart';
 
-class ProcessListScreen extends StatelessWidget {
+class ProcessListScreen extends StatefulWidget {
   const ProcessListScreen({super.key});
+
+  @override
+  State<ProcessListScreen> createState() => _ProcessListScreenState();
+}
+
+class _ProcessListScreenState extends State<ProcessListScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _logger = Logger();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.menu),
+          onPressed: () {
+            _logger.i('Opening app drawer from ProcessListScreen');
+            _scaffoldKey.currentState?.openDrawer();
+          },
+        ),
         title: Text('Processes'),
         actions: [
           IconButton(
