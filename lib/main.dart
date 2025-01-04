@@ -11,10 +11,6 @@ import 'core/config/theme_config.dart';
 import 'core/config/provider_config.dart';
 import 'core/auth/screens/login_screen.dart';
 import 'features/dashboard/screens/machine_dashboard_screen.dart';
-import 'features/process/providers/process_provider.dart';
-import 'features/experiments/providers/experiment_provider.dart';
-import 'features/recipes/providers/recipe_provider.dart';
-import 'widgets/app_drawer.dart';
 
 final logger = Logger(
   printer: PrettyPrinter(
