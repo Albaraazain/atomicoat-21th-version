@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:logger/logger.dart';
 import '../../../core/auth/providers/auth_provider.dart';
 import '../../../features/components/providers/component_provider.dart';
 import '../../../widgets/app_drawer.dart';
@@ -15,6 +16,9 @@ class MachineDashboard extends StatefulWidget {
 }
 
 class _MachineDashboardState extends State<MachineDashboard> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _logger = Logger();
+
   final List<_DashboardTab> _tabs = [
     _DashboardTab(Icons.dashboard_rounded, 'Overview'),
     _DashboardTab(Icons.play_circle_outline_rounded, 'Process'),
@@ -28,6 +32,7 @@ class _MachineDashboardState extends State<MachineDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Color(0xFF1A1A1A),
       appBar: _buildAppBar(),
       drawer: AppDrawer(),
@@ -57,7 +62,10 @@ class _MachineDashboardState extends State<MachineDashboard> {
       backgroundColor: Color(0xFF2A2A2A),
       leading: IconButton(
         icon: Icon(Icons.menu),
-        onPressed: () => Scaffold.of(context).openDrawer(),
+        onPressed: () {
+          _logger.i('Opening app drawer from MachineDashboard');
+          _scaffoldKey.currentState?.openDrawer();
+        },
       ),
       title: Row(
         children: [
@@ -350,30 +358,41 @@ class _MachineDashboardState extends State<MachineDashboard> {
                     size: 20,
                   ),
                   SizedBox(width: 8),
-                  Text(
-                    name,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
               SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 28,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              Text(
-                'Range: $range',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Range: $range',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
