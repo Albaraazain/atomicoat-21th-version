@@ -79,7 +79,7 @@ class AppDrawer extends StatelessWidget {
             leading: Icon(Icons.settings),
             title: Text('Settings'),
             onTap: () {
-              // TODO: Navigate to settings
+              Navigator.pushNamed(context, RouteConfig.settingsRoute);
             },
           ),
           ListTile(
