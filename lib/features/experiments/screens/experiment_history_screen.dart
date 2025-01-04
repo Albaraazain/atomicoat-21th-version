@@ -1,8 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../core/auth/providers/auth_provider.dart';
-import '../models/experiment.dart';
-import '../providers/experiment_provider.dart';
 import '../widgets/experiment_list_view.dart';
 import '../widgets/experiment_detail_view.dart';
 
