@@ -355,7 +355,6 @@ class _StepDialog extends StatefulWidget {
   final Function(RecipeStep) onSave;
 
   const _StepDialog({
-    super.key,
     this.initialStep,
     required this.onSave,
   });
