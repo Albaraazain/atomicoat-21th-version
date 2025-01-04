@@ -1,17 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:logger/logger.dart';
 import '../providers/experiment_provider.dart';
 import '../models/experiment.dart';
 import '../../../core/config/route_config.dart';
 import '../../../widgets/app_drawer.dart';
 
-class ExperimentListScreen extends StatelessWidget {
+class ExperimentListScreen extends StatefulWidget {
   const ExperimentListScreen({super.key});
+
+  @override
+  State<ExperimentListScreen> createState() => _ExperimentListScreenState();
+}
+
+class _ExperimentListScreenState extends State<ExperimentListScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _logger = Logger();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.menu),
+          onPressed: () {
+            _logger.i('Opening app drawer from ExperimentListScreen');
+            _scaffoldKey.currentState?.openDrawer();
+          },
+        ),
         title: Text('Experiments'),
         actions: [
           IconButton(
