@@ -1,10 +1,8 @@
 // lib/features/dashboard/widgets/tabs/history_tab.dart
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../experiments/widgets/experiment_list_view.dart';
 import '../../../experiments/screens/experiment_history_screen.dart';
-import '../../../experiments/providers/experiment_provider.dart';
 
 class HistoryTab extends StatelessWidget {
   const HistoryTab({super.key});
