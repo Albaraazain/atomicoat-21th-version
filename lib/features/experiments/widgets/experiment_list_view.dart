@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/experiment.dart';
 
 class ExperimentListView extends StatelessWidget {
   final List<Map<String, dynamic>> experiments;
