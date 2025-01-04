@@ -1,19 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:logger/logger.dart';
 import '../providers/machine_provider.dart';
-import '../models/machine.dart';
-import '../../../core/config/route_config.dart';
 import '../../../widgets/app_drawer.dart';
 
-class MachineListScreen extends StatelessWidget {
+class MachineListScreen extends StatefulWidget {
   const MachineListScreen({super.key});
+
+  @override
+  State<MachineListScreen> createState() => _MachineListScreenState();
+}
+
+class _MachineListScreenState extends State<MachineListScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  final _logger = Logger();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: Color(0xFF1A1A1A),
       appBar: AppBar(
         backgroundColor: Color(0xFF2A2A2A),
+        leading: IconButton(
+          icon: Icon(Icons.menu),
+          onPressed: () {
+            _logger.i('Opening app drawer from MachineListScreen');
+            _scaffoldKey.currentState?.openDrawer();
+          },
+        ),
         title: Text('ALD Machines'),
         actions: [
           IconButton(
