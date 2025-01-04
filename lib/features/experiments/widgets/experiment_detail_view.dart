@@ -1,7 +1,6 @@
 // lib/features/experiments/widgets/experiment_detail_view.dart
 
 import 'package:flutter/material.dart';
-import '../models/experiment.dart';
 import 'parameter_trend_chart.dart';
 import 'process_timeline.dart';
 
