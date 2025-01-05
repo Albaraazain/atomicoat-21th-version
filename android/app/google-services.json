@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "453571415915",
-    "project_id": "atomicoat-a6241",
-    "storage_bucket": "atomicoat-a6241.appspot.com"
+    "project_number": "718715320122",
+    "project_id": "atomicoat-new",
+    "storage_bucket": "atomicoat-new.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:453571415915:android:ac719308a7529f8f27462e",
+        "mobilesdk_app_id": "1:718715320122:android:45c7ea19fe9fabc895c203",
         "android_client_info": {
-          "package_name": "com.example.atomicoat_5th_version"
+          "package_name": "com.albaraa.atomicoat"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyByMYvcYFc_IJxYwYWRRrjvZ8yJBkvWf_Y"
+          "current_key": "AIzaSyBKZcCZbUtNcXpQvP6VNsAVLeJiLWDc4kQ"
         }
       ],
       "services": {
