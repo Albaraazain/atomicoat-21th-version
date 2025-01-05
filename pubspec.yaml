@@ -1,5 +1,5 @@
-name: experiment_planner
-description: An app for planning and scheduling experiments.
+name: atomicoat
+description: A coating thickness measurement and analysis app.
 
 publish_to: 'none'
 

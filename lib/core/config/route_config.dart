@@ -1,4 +1,4 @@
-import 'package:experiment_planner/features/recipes/screens/recipe_list_screen.dart';
+import 'package:atomicoat/features/recipes/screens/recipe_list_screen.dart';
 import 'package:flutter/material.dart';
 import '../../features/machines/screens/machine_list_screen.dart';
 import '../../features/machines/screens/machine_creation_screen.dart';
