@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:logger/logger.dart';
 import 'core/auth/services/auth_service.dart';
 import 'core/services/navigation_service.dart';
@@ -29,7 +29,13 @@ void main() async {
   try {
     logger.i('Starting application initialization');
     WidgetsFlutterBinding.ensureInitialized();
-    await Firebase.initializeApp();
+
+    // Initialize Supabase
+    await Supabase.initialize(
+      url: 'https://yceyfsqusdmcwgkwxcnt.supabase.co',
+      anonKey:
+          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZXlmc3F1c2RtY3dna3d4Y250Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5OTYzNzUsImV4cCI6MjA1MTU3MjM3NX0.tiMdbAs79ZOS3PhnEUxXq_g5JLLXG8-o_a7VAIN6cd8',
+    );
 
     final authService = AuthService();
     final navigationService = NavigationService();
