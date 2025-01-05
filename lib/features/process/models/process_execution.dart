@@ -98,40 +98,41 @@ class ProcessExecution {
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'machineId': machineId,
-      'recipe': recipe.toFirestore(),
-      'startTime': startTime.toIso8601String(),
-      'endTime': endTime?.toIso8601String(),
-      'operatorId': operatorId,
-      'status': status.toString(),
-      'currentStepIndex': currentStepIndex,
-      'dataPoints': dataPoints.map((p) => p.toMap()).toList(),
+      'machine_id': machineId,
+      'recipe': recipe.toJson(),
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime?.toIso8601String(),
+      'operator_id': operatorId,
+      'status': status.toString().split('.').last,
+      'current_step_index': currentStepIndex,
+      'data_points': dataPoints.map((p) => p.toJson()).toList(),
       'parameters': parameters,
-      'errorMessage': errorMessage,
+      'error_message': errorMessage,
     };
   }
 
-  factory ProcessExecution.fromMap(Map<String, dynamic> map) {
+  factory ProcessExecution.fromJson(Map<String, dynamic> json) {
     return ProcessExecution(
-      id: map['id'],
-      machineId: map['machineId'],
-      recipe: Recipe.fromJson(map['recipe']),
-      startTime: DateTime.parse(map['startTime']),
-      endTime: map['endTime'] != null ? DateTime.parse(map['endTime']) : null,
-      operatorId: map['operatorId'],
+      id: json['id'],
+      machineId: json['machine_id'],
+      recipe: Recipe.fromJson(json['recipe']),
+      startTime: DateTime.parse(json['start_time']),
+      endTime:
+          json['end_time'] != null ? DateTime.parse(json['end_time']) : null,
+      operatorId: json['operator_id'],
       status: ProcessStatus.values.firstWhere(
-        (s) => s.toString() == map['status'],
+        (s) => s.toString().split('.').last == json['status'],
         orElse: () => ProcessStatus.failed,
       ),
-      currentStepIndex: map['currentStepIndex'],
-      dataPoints: (map['dataPoints'] as List)
-          .map((p) => ProcessDataPoint.fromMap(p))
+      currentStepIndex: json['current_step_index'],
+      dataPoints: (json['data_points'] as List)
+          .map((p) => ProcessDataPoint.fromJson(p))
           .toList(),
-      parameters: Map<String, dynamic>.from(map['parameters']),
-      errorMessage: map['errorMessage'],
+      parameters: Map<String, dynamic>.from(json['parameters']),
+      errorMessage: json['error_message'],
     );
   }
 
