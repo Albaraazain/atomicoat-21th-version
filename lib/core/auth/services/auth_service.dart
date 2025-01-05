@@ -1,11 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:logger/logger.dart';
 import '../enums/user_role.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final _supabase = Supabase.instance.client;
   final _logger = Logger(
     printer: PrettyPrinter(
       methodCount: 0,
@@ -18,10 +16,10 @@ class AuthService {
   );
 
   // Current user getter
-  User? get currentUser => _auth.currentUser;
+  User? get currentUser => _supabase.auth.currentUser;
 
   // Auth state changes stream
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
 
   // Sign in with email and password
   Future<User?> signIn(
@@ -29,23 +27,23 @@ class AuthService {
     try {
       _logger.i('Attempting sign in for user: $email');
 
-      final UserCredential result = await _auth.signInWithEmailAndPassword(
+      final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
-      final User? user = result.user;
+      final User? user = response.user;
       if (user != null) {
-        _logger.i('Sign in successful for user: ${user.uid}');
+        _logger.i('Sign in successful for user: ${user.id}');
 
-        // Check if user document exists
-        final userDoc =
-            await _firestore.collection('users').doc(user.uid).get();
+        // Check if user profile exists
+        final userProfile =
+            await _supabase.from('users').select().eq('id', user.id).single();
 
-        if (!userDoc.exists) {
-          _logger.w('User document not found, creating new document');
-          // Create user document if it doesn't exist
-          await _createUserDocument(user, UserRole.user);
+        if (userProfile == null) {
+          _logger.w('User profile not found, creating new profile');
+          // Create user profile if it doesn't exist
+          await _createUserProfile(user, UserRole.user);
         }
 
         return user;
@@ -74,17 +72,17 @@ class AuthService {
         throw Exception('Invalid machine serial number');
       }
 
-      final UserCredential result = await _auth.createUserWithEmailAndPassword(
+      final response = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
 
-      final User? user = result.user;
+      final User? user = response.user;
       if (user != null) {
-        _logger.i('Sign up successful for user: ${user.uid}');
+        _logger.i('Sign up successful for user: ${user.id}');
 
-        // Create user document
-        await _createUserDocument(
+        // Create user profile
+        await _createUserProfile(
           user,
           UserRole.user,
           name: name,
@@ -106,7 +104,7 @@ class AuthService {
   Future<void> signOut() async {
     try {
       _logger.i('Attempting sign out');
-      await _auth.signOut();
+      await _supabase.auth.signOut();
       _logger.i('Sign out successful');
     } catch (e, stackTrace) {
       _logger.e('Sign out error', error: e, stackTrace: stackTrace);
@@ -118,14 +116,18 @@ class AuthService {
   Future<UserRole> getUserRole(String userId) async {
     try {
       _logger.d('Getting user role for: $userId');
-      final doc = await _firestore.collection('users').doc(userId).get();
+      final response = await _supabase
+          .from('users')
+          .select('role')
+          .eq('id', userId)
+          .single();
 
-      if (!doc.exists) {
-        _logger.w('User document not found, defaulting to user role');
+      if (response == null) {
+        _logger.w('User profile not found, defaulting to user role');
         return UserRole.user;
       }
 
-      final roleStr = doc.get('role') as String? ?? 'user';
+      final roleStr = response['role'] as String? ?? 'user';
       _logger.d('User role found: $roleStr');
 
       return _parseUserRole(roleStr);
@@ -139,14 +141,18 @@ class AuthService {
   Future<String?> getUserStatus(String userId) async {
     try {
       _logger.d('Getting user status for: $userId');
-      final doc = await _firestore.collection('users').doc(userId).get();
+      final response = await _supabase
+          .from('users')
+          .select('status')
+          .eq('id', userId)
+          .single();
 
-      if (!doc.exists) {
-        _logger.w('User document not found');
+      if (response == null) {
+        _logger.w('User profile not found');
         return null;
       }
 
-      final status = doc.get('status') as String?;
+      final status = response['status'] as String?;
       _logger.d('User status found: $status');
 
       return status;
@@ -160,10 +166,10 @@ class AuthService {
   Future<void> updateUserStatus(String userId, String status) async {
     try {
       _logger.i('Updating status for user $userId to: $status');
-      await _firestore.collection('users').doc(userId).update({
+      await _supabase.from('users').update({
         'status': status,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
       _logger.i('Status update successful');
     } catch (e, stackTrace) {
       _logger.e('Error updating user status', error: e, stackTrace: stackTrace);
@@ -175,10 +181,10 @@ class AuthService {
   Future<void> updateUserRole(String userId, UserRole role) async {
     try {
       _logger.i('Updating role for user $userId to: $role');
-      await _firestore.collection('users').doc(userId).update({
-        'role': role.toString().split('.').last.toLowerCase(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      await _supabase.from('users').update({
+        'role': role.toString(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
       _logger.i('Role update successful');
     } catch (e, stackTrace) {
       _logger.e('Error updating user role', error: e, stackTrace: stackTrace);
@@ -190,7 +196,7 @@ class AuthService {
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       _logger.i('Sending password reset email to: $email');
-      await _auth.sendPasswordResetEmail(email: email);
+      await _supabase.auth.resetPasswordForEmail(email);
       _logger.i('Password reset email sent successfully');
     } catch (e, stackTrace) {
       _logger.e('Error sending password reset email',
@@ -200,7 +206,7 @@ class AuthService {
   }
 
   // Private helper methods
-  Future<void> _createUserDocument(
+  Future<void> _createUserProfile(
     User user,
     UserRole role, {
     String? name,
@@ -220,20 +226,21 @@ class AuthService {
       }
 
       final userData = {
+        'id': user.id,
         'email': user.email,
-        'role': role.toString().split('.').last.toLowerCase(),
+        'role': role.toString(),
         'status': status,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       };
 
       if (name != null) userData['name'] = name;
-      if (machineSerial != null) userData['machineSerial'] = machineSerial;
+      if (machineSerial != null) userData['machine_serial'] = machineSerial;
 
-      await _firestore.collection('users').doc(user.uid).set(userData);
-      _logger.i('User document created successfully');
+      await _supabase.from('users').insert(userData);
+      _logger.i('User profile created successfully');
     } catch (e, stackTrace) {
-      _logger.e('Error creating user document',
+      _logger.e('Error creating user profile',
           error: e, stackTrace: stackTrace);
       rethrow;
     }
