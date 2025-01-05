@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/auth/providers/auth_provider.dart';
 import '../../../core/config/theme_config.dart';
+import 'profile_settings_screen.dart';
+import 'security_settings_screen.dart';
+import 'notifications_settings_screen.dart';
+import 'language_settings_screen.dart';
+import 'help_support_screen.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -26,14 +32,24 @@ class SettingsScreen extends StatelessWidget {
                 title: const Text('Profile'),
                 subtitle: Text(authProvider.user?.email ?? 'Not signed in'),
                 onTap: () {
-                  // Profile settings navigation will be implemented
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileSettingsScreen(),
+                    ),
+                  );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.security),
                 title: const Text('Security'),
                 onTap: () {
-                  // Security settings navigation will be implemented
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SecuritySettingsScreen(),
+                    ),
+                  );
                 },
               ),
             ],
@@ -46,7 +62,12 @@ class SettingsScreen extends StatelessWidget {
                 leading: const Icon(Icons.notifications),
                 title: const Text('Notifications'),
                 onTap: () {
-                  // Notifications settings navigation will be implemented
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsSettingsScreen(),
+                    ),
+                  );
                 },
               ),
               ListTile(
@@ -54,7 +75,12 @@ class SettingsScreen extends StatelessWidget {
                 title: const Text('Language'),
                 subtitle: const Text('English'),
                 onTap: () {
-                  // Language settings navigation will be implemented
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LanguageSettingsScreen(),
+                    ),
+                  );
                 },
               ),
             ],
@@ -67,14 +93,24 @@ class SettingsScreen extends StatelessWidget {
                 leading: const Icon(Icons.help),
                 title: const Text('Help & Support'),
                 onTap: () {
-                  // Help & Support navigation will be implemented
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HelpSupportScreen(),
+                    ),
+                  );
                 },
               ),
               ListTile(
                 leading: const Icon(Icons.info),
                 title: const Text('About'),
                 onTap: () {
-                  // About navigation will be implemented
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AboutScreen(),
+                    ),
+                  );
                 },
               ),
             ],
@@ -92,8 +128,7 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection(
-      {required String title, required List<Widget> children}) {
+  Widget _buildSection({required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
