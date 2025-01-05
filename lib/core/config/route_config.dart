@@ -13,6 +13,7 @@ import '../../features/experiments/screens/experiment_details_screen.dart';
 import '../../features/recipes/screens/recipe_creation_screen.dart';
 import '../../core/auth/screens/login_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
+import '../../features/settings/screens/help_support_screen.dart';
 
 class RouteConfig {
   // Auth routes
@@ -46,6 +47,9 @@ class RouteConfig {
   // Settings route
   static const String settingsRoute = '/settings';
 
+  // Help route
+  static const String helpRoute = '/help';
+
   static Map<String, Widget Function(BuildContext)> routes = {
     loginRoute: (context) => const LoginScreen(),
     mainDashboardRoute: (context) => const MachineDashboard(),
@@ -55,6 +59,7 @@ class RouteConfig {
     experimentListRoute: (context) => const ExperimentListScreen(),
     recipeListRoute: (context) => const RecipeListScreen(),
     settingsRoute: (context) => const SettingsScreen(),
+    helpRoute: (context) => const HelpSupportScreen(),
   };
 
   static Route<dynamic>? generateRoute(RouteSettings settings) {
