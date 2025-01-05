@@ -72,6 +72,7 @@ class MyApp extends StatelessWidget {
       title: 'ALD Machine Control',
       theme: ThemeConfig.teslaTheme,
       themeMode: ThemeMode.dark,
+      debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       home: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
