@@ -35,7 +35,10 @@ class _LoginScreenState extends State<LoginScreen> {
         if (success) {
           if (mounted) {
             print('Login successful'); // Debug log
-            if (authProvider.userRole == UserRole.admin) {
+            if (authProvider.isSuperAdmin) {
+              print('Logged in as super admin'); // Debug log
+              Navigator.of(context).pushReplacementNamed('/admin_dashboard');
+            } else if (authProvider.isAdmin) {
               print('Logged in as admin'); // Debug log
               Navigator.of(context).pushReplacementNamed('/admin_dashboard');
             } else {
