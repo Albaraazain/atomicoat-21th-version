@@ -86,7 +86,7 @@ class AppDrawer extends StatelessWidget {
             leading: Icon(Icons.help_outline),
             title: Text('Help'),
             onTap: () {
-              // TODO: Navigate to help
+              Navigator.pushNamed(context, RouteConfig.helpRoute);
             },
           ),
           Divider(),
