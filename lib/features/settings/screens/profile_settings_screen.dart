@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../core/auth/providers/auth_provider.dart';
 import '../../../core/config/theme_config.dart';
 
 class ProfileSettingsScreen extends StatefulWidget {
@@ -18,9 +16,12 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: 'John Doe');  // Hardcoded for now
-    _emailController = TextEditingController(text: 'john.doe@example.com');  // Hardcoded for now
-    _phoneController = TextEditingController(text: '+1234567890');  // Hardcoded for now
+    _nameController =
+        TextEditingController(text: 'John Doe'); // Hardcoded for now
+    _emailController = TextEditingController(
+        text: 'john.doe@example.com'); // Hardcoded for now
+    _phoneController =
+        TextEditingController(text: '+1234567890'); // Hardcoded for now
   }
 
   @override
@@ -69,7 +70,8 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 labelText: 'Email',
                 border: OutlineInputBorder(),
               ),
-              readOnly: true,  // Email should be changed through security settings
+              readOnly:
+                  true, // Email should be changed through security settings
             ),
             const SizedBox(height: 16),
             TextField(
