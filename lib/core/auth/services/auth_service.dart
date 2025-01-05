@@ -207,10 +207,22 @@ class AuthService {
     String? machineSerial,
   }) async {
     try {
+      String status;
+      switch (role) {
+        case UserRole.superAdmin:
+        case UserRole.admin:
+          status = 'active';
+          break;
+        case UserRole.operator:
+        case UserRole.user:
+          status = 'pending';
+          break;
+      }
+
       final userData = {
         'email': user.email,
         'role': role.toString().split('.').last.toLowerCase(),
-        'status': role == UserRole.admin ? 'approved' : 'pending',
+        'status': status,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -236,6 +248,8 @@ class AuthService {
 
   UserRole _parseUserRole(String roleStr) {
     switch (roleStr.toLowerCase()) {
+      case 'superadmin':
+        return UserRole.superAdmin;
       case 'admin':
         return UserRole.admin;
       case 'operator':
