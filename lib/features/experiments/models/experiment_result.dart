@@ -17,31 +17,31 @@ class ExperimentResult {
     this.criticalDeviations = const [],
   });
 
-  factory ExperimentResult.fromMap(Map<String, dynamic> map) {
+  factory ExperimentResult.fromJson(Map<String, dynamic> json) {
     return ExperimentResult(
-      qualityMetrics: Map<String, double>.from(map['qualityMetrics']),
+      qualityMetrics: Map<String, double>.from(json['quality_metrics']),
       parameterDeviations: Map<String, List<double>>.from(
-        map['parameterDeviations'].map(
+        json['parameter_deviations'].map(
           (key, value) => MapEntry(key, List<double>.from(value)),
         ),
       ),
-      observations: List<String>.from(map['observations']),
-      recommendations: List<Map<String, dynamic>>.from(map['recommendations']),
-      measurements: Map<String, double>.from(map['measurements']),
-      qualityScore: map['qualityScore']?.toDouble() ?? 0.0,
-      criticalDeviations: List<String>.from(map['criticalDeviations'] ?? []),
+      observations: List<String>.from(json['observations']),
+      recommendations: List<Map<String, dynamic>>.from(json['recommendations']),
+      measurements: Map<String, double>.from(json['measurements']),
+      qualityScore: json['quality_score']?.toDouble() ?? 0.0,
+      criticalDeviations: List<String>.from(json['critical_deviations'] ?? []),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'qualityMetrics': qualityMetrics,
-      'parameterDeviations': parameterDeviations,
+      'quality_metrics': qualityMetrics,
+      'parameter_deviations': parameterDeviations,
       'observations': observations,
       'recommendations': recommendations,
       'measurements': measurements,
-      'qualityScore': qualityScore,
-      'criticalDeviations': criticalDeviations,
+      'quality_score': qualityScore,
+      'critical_deviations': criticalDeviations,
     };
   }
 }

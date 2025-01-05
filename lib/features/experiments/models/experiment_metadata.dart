@@ -15,33 +15,37 @@ class ExperimentMetadata {
     required this.equipmentSettings,
   });
 
-  bool isParameterWithinTolerance(String parameter, double value, double setPoint) {
-    final tolerance = parameterTolerances[parameter] ?? 0.05; // Default 5% tolerance
+  bool isParameterWithinTolerance(
+      String parameter, double value, double setPoint) {
+    final tolerance =
+        parameterTolerances[parameter] ?? 0.05; // Default 5% tolerance
     final deviation = (value - setPoint).abs();
     return deviation <= (setPoint * tolerance);
   }
 
   String getUnit(String parameter) => parameterUnits[parameter] ?? '';
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
-      'parameterTolerances': parameterTolerances,
-      'qualityThreshold': qualityThreshold,
-      'parameterUnits': parameterUnits,
-      'substrateInfo': substrateInfo,
-      'environmentalConditions': environmentalConditions,
-      'equipmentSettings': equipmentSettings,
+      'parameter_tolerances': parameterTolerances,
+      'quality_threshold': qualityThreshold,
+      'parameter_units': parameterUnits,
+      'substrate_info': substrateInfo,
+      'environmental_conditions': environmentalConditions,
+      'equipment_settings': equipmentSettings,
     };
   }
 
-  factory ExperimentMetadata.fromMap(Map<String, dynamic> map) {
+  factory ExperimentMetadata.fromJson(Map<String, dynamic> json) {
     return ExperimentMetadata(
-      parameterTolerances: Map<String, double>.from(map['parameterTolerances']),
-      qualityThreshold: map['qualityThreshold'].toDouble(),
-      parameterUnits: Map<String, String>.from(map['parameterUnits']),
-      substrateInfo: Map<String, dynamic>.from(map['substrateInfo']),
-      environmentalConditions: Map<String, dynamic>.from(map['environmentalConditions']),
-      equipmentSettings: Map<String, dynamic>.from(map['equipmentSettings']),
+      parameterTolerances:
+          Map<String, double>.from(json['parameter_tolerances']),
+      qualityThreshold: json['quality_threshold'].toDouble(),
+      parameterUnits: Map<String, String>.from(json['parameter_units']),
+      substrateInfo: Map<String, dynamic>.from(json['substrate_info']),
+      environmentalConditions:
+          Map<String, dynamic>.from(json['environmental_conditions']),
+      equipmentSettings: Map<String, dynamic>.from(json['equipment_settings']),
     );
   }
 

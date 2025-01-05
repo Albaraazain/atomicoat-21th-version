@@ -49,42 +49,42 @@ class Experiment {
     return dataPoints.where((point) => point.parameter == parameter).toList();
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'machineId': machineId,
-      'recipe': recipe.toFirestore(),
-      'startTime': startTime.toIso8601String(),
-      'endTime': endTime.toIso8601String(),
-      'operatorId': operatorId,
-      'status': status.toString(),
-      'dataPoints': dataPoints.map((p) => p.toMap()).toList(),
-      'metadata': metadata.toMap(),
-      'result': result?.toMap(),
+      'machine_id': machineId,
+      'recipe': recipe.toJson(),
+      'start_time': startTime.toIso8601String(),
+      'end_time': endTime.toIso8601String(),
+      'operator_id': operatorId,
+      'status': status.toString().split('.').last,
+      'data_points': dataPoints.map((p) => p.toJson()).toList(),
+      'metadata': metadata.toJson(),
+      'result': result?.toJson(),
       'notes': notes,
     };
   }
 
-  factory Experiment.fromMap(Map<String, dynamic> map) {
+  factory Experiment.fromJson(Map<String, dynamic> json) {
     return Experiment(
-      id: map['id'],
-      machineId: map['machineId'],
-      recipe: Recipe.fromJson(map['recipe']),
-      startTime: DateTime.parse(map['startTime']),
-      endTime: DateTime.parse(map['endTime']),
-      operatorId: map['operatorId'],
+      id: json['id'],
+      machineId: json['machine_id'],
+      recipe: Recipe.fromJson(json['recipe']),
+      startTime: DateTime.parse(json['start_time']),
+      endTime: DateTime.parse(json['end_time']),
+      operatorId: json['operator_id'],
       status: ProcessStatus.values.firstWhere(
-        (s) => s.toString() == map['status'],
+        (s) => s.toString().split('.').last == json['status'],
         orElse: () => ProcessStatus.failed,
       ),
-      dataPoints: (map['dataPoints'] as List)
-          .map((p) => ProcessDataPoint.fromMap(p))
+      dataPoints: (json['data_points'] as List)
+          .map((p) => ProcessDataPoint.fromJson(p))
           .toList(),
-      metadata: ExperimentMetadata.fromMap(map['metadata']),
-      result: map['result'] != null
-          ? ExperimentResult.fromMap(map['result'])
+      metadata: ExperimentMetadata.fromJson(json['metadata']),
+      result: json['result'] != null
+          ? ExperimentResult.fromJson(json['result'])
           : null,
-      notes: map['notes'],
+      notes: json['notes'],
     );
   }
 
