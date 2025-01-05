@@ -16,28 +16,30 @@ class ProcessDataPoint {
   });
 
   double get deviation => setPoint != null ? (value - setPoint!).abs() : 0.0;
-  bool get isWithinTolerance => setPoint != null ? deviation <= (setPoint! * 0.05) : true;
+  bool get isWithinTolerance =>
+      setPoint != null ? deviation <= (setPoint! * 0.05) : true;
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'parameter': parameter,
       'value': value,
       'timestamp': timestamp.toIso8601String(),
       'unit': unit,
-      'setPoint': setPoint,
+      'set_point': setPoint,
     };
   }
 
-  factory ProcessDataPoint.fromMap(Map<String, dynamic> map) {
+  factory ProcessDataPoint.fromJson(Map<String, dynamic> json) {
     return ProcessDataPoint(
-      parameter: map['parameter'],
-      value: map['value'].toDouble(),
-      timestamp: DateTime.parse(map['timestamp']),
-      unit: map['unit'],
-      setPoint: map['setPoint']?.toDouble(),
+      parameter: json['parameter'],
+      value: json['value'].toDouble(),
+      timestamp: DateTime.parse(json['timestamp']),
+      unit: json['unit'],
+      setPoint: json['set_point']?.toDouble(),
     );
   }
 
   @override
-  String toString() => 'ProcessDataPoint($parameter: $value${unit != null ? ' $unit' : ''})';
+  String toString() =>
+      'ProcessDataPoint($parameter: $value${unit != null ? ' $unit' : ''})';
 }
