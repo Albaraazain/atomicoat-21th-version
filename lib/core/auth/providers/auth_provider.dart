@@ -35,11 +35,14 @@ class AuthProvider with ChangeNotifier {
   String? get userStatus => _userStatus;
   bool get isAuthenticated => _user != null;
   bool get isAdmin => _userRole == UserRole.admin;
+  bool get isSuperAdmin => _userRole == UserRole.superAdmin;
+  bool get hasAdminPrivileges => _userRole?.hasAdminPrivileges ?? false;
+  bool get canManageMachines => _userRole?.canManageMachines ?? false;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
   bool isApproved() {
-    return _userStatus == 'approved' || _userStatus == 'active';
+    return _userStatus == 'active';
   }
 
   AuthProvider(this._authService) {
