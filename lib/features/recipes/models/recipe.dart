@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum StepType {
   valve,
   purge,
@@ -24,32 +22,32 @@ class RecipeStep {
     this.subSteps,
   });
 
-  factory RecipeStep.fromMap(Map<String, dynamic> map) {
+  factory RecipeStep.fromJson(Map<String, dynamic> json) {
     return RecipeStep(
-      id: map['id'],
-      name: map['name'],
-      description: map['description'],
-      parameters: map['parameters'],
+      id: json['id'],
+      name: json['name'],
+      description: json['description'],
+      parameters: json['parameters'],
       type: StepType.values.firstWhere(
-        (e) => e.toString() == 'StepType.${map['type']}',
+        (e) => e.toString() == 'StepType.${json['type']}',
         orElse: () => StepType.setParameter,
       ),
-      subSteps: map['subSteps'] != null
-          ? (map['subSteps'] as List)
-              .map((step) => RecipeStep.fromMap(step))
+      subSteps: json['sub_steps'] != null
+          ? (json['sub_steps'] as List)
+              .map((step) => RecipeStep.fromJson(step))
               .toList()
           : null,
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'description': description,
       'parameters': parameters,
       'type': type.toString().split('.').last,
-      'subSteps': subSteps?.map((step) => step.toMap()).toList(),
+      'sub_steps': subSteps?.map((step) => step.toJson()).toList(),
     };
   }
 }
@@ -83,36 +81,42 @@ class Recipe {
     required this.pressureSetPoint,
   });
 
-  factory Recipe.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+  factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
-      id: doc.id,
-      name: data['name'],
-      description: data['description'],
-      steps: (data['steps'] as List)
-          .map((step) => RecipeStep.fromMap(step))
+      id: json['id'],
+      name: json['name'],
+      description: json['description'],
+      steps: (json['steps'] as List)
+          .map((step) => RecipeStep.fromJson(step))
           .toList(),
-      isPublic: data['isPublic'] ?? false,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: data['updatedAt'] != null
-          ? (data['updatedAt'] as Timestamp).toDate()
+      isPublic: json['is_public'] ?? false,
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : null,
-      createdBy: data['createdBy'] ?? '',
-      machineId: data['machineId'] ?? '',
-      substrate: data['substrate'] ?? '',
-      chamberTemperatureSetPoint: data['chamberTemperatureSetPoint'] ?? 0.0,
-      pressureSetPoint: data['pressureSetPoint'] ?? 0.0,
+      createdBy: json['created_by'],
+      machineId: json['machine_id'],
+      substrate: json['substrate'],
+      chamberTemperatureSetPoint:
+          json['chamber_temperature_set_point'].toDouble(),
+      pressureSetPoint: json['pressure_set_point'].toDouble(),
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'description': description,
-      'steps': steps.map((step) => step.toMap()).toList(),
-      'isPublic': isPublic,
-      'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      'steps': steps.map((step) => step.toJson()).toList(),
+      'is_public': isPublic,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'created_by': createdBy,
+      'machine_id': machineId,
+      'substrate': substrate,
+      'chamber_temperature_set_point': chamberTemperatureSetPoint,
+      'pressure_set_point': pressureSetPoint,
     };
   }
 
@@ -144,29 +148,6 @@ class Recipe {
       chamberTemperatureSetPoint:
           chamberTemperatureSetPoint ?? this.chamberTemperatureSetPoint,
       pressureSetPoint: pressureSetPoint ?? this.pressureSetPoint,
-    );
-  }
-
-  static Recipe fromJson(Map<String, dynamic> json) {
-    return Recipe(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      description: json['description'] ?? '',
-      steps: (json['steps'] as List? ?? [])
-          .map((step) => RecipeStep.fromMap(step))
-          .toList(),
-      isPublic: json['isPublic'] ?? false,
-      createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
-          : DateTime.now(),
-      updatedAt:
-          json['updatedAt'] != null ? DateTime.parse(json['updatedAt']) : null,
-      createdBy: json['createdBy'] ?? '',
-      machineId: json['machineId'] ?? '',
-      substrate: json['substrate'] ?? '',
-      chamberTemperatureSetPoint:
-          (json['chamberTemperatureSetPoint'] ?? 0.0).toDouble(),
-      pressureSetPoint: (json['pressureSetPoint'] ?? 0.0).toDouble(),
     );
   }
 
