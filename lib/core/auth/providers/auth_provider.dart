@@ -3,7 +3,7 @@
 import 'package:flutter/foundation.dart';
 import '../services/auth_service.dart';
 import 'package:logger/logger.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../enums/user_role.dart';
 import '../models/user_model.dart';
 
@@ -30,7 +30,7 @@ class AuthProvider with ChangeNotifier {
   // Getters
   User? get user => _user;
   UserModel? get userModel => _userModel;
-  String? get userId => _user?.uid;
+  String? get userId => _user?.id;
   UserRole? get userRole => _userRole;
   String? get userStatus => _userStatus;
   bool get isAuthenticated => _user != null;
@@ -57,13 +57,15 @@ class AuthProvider with ChangeNotifier {
 
       _user = _authService.currentUser;
       if (_user != null) {
-        _logger.i('Current user found during initialization: ${_user?.uid}');
+        _logger.i('Current user found during initialization: ${_user?.id}');
         await _loadUserData();
       } else {
         _logger.i('No current user found during initialization');
       }
 
-      _authService.authStateChanges.listen(_handleAuthStateChange);
+      _authService.authStateChanges.listen((state) {
+        _handleAuthStateChange(state.session?.user);
+      });
     } catch (e, stackTrace) {
       _handleError('Failed to initialize auth provider', e, stackTrace);
     } finally {
@@ -75,7 +77,7 @@ class AuthProvider with ChangeNotifier {
     try {
       _user = user;
       if (_user != null) {
-        _logger.i('Auth state changed: User logged in: ${_user?.uid}');
+        _logger.i('Auth state changed: User logged in: ${_user?.id}');
         await _loadUserData();
       } else {
         _logger.i('Auth state changed: User logged out');
@@ -91,18 +93,19 @@ class AuthProvider with ChangeNotifier {
     try {
       if (_user == null) return;
 
-      _userRole = await _authService.getUserRole(_user!.uid);
-      _userStatus = await _authService.getUserStatus(_user!.uid);
+      _userRole = await _authService.getUserRole(_user!.id);
+      _userStatus = await _authService.getUserStatus(_user!.id);
 
       // Create UserModel
       _userModel = UserModel(
-        uid: _user!.uid,
+        uid: _user!.id,
         email: _user!.email!,
         role: _userRole,
         status: _userStatus,
       );
 
-      _logger.i('User data loaded successfully: ${_user?.uid}, role: $_userRole, status: $_userStatus');
+      _logger.i(
+          'User data loaded successfully: ${_user?.id}, role: $_userRole, status: $_userStatus');
     } catch (e, stackTrace) {
       _handleError('Failed to load user data', e, stackTrace);
     }
@@ -137,7 +140,7 @@ class AuthProvider with ChangeNotifier {
         throw Exception('Sign in failed');
       }
 
-      _logger.i('Sign in successful: ${user.uid}');
+      _logger.i('Sign in successful: ${user.id}');
 
       return true;
     } catch (e, stackTrace) {
@@ -169,7 +172,7 @@ class AuthProvider with ChangeNotifier {
         throw Exception('Sign up failed');
       }
 
-      _logger.i('Sign up successful: ${user.uid}');
+      _logger.i('Sign up successful: ${user.id}');
 
       return true;
     } catch (e, stackTrace) {
@@ -218,7 +221,7 @@ class AuthProvider with ChangeNotifier {
       _error = null;
 
       await _authService.updateUserRole(userId, role);
-      if (userId == _user?.uid) {
+      if (userId == _user?.id) {
         _userRole = role;
       }
       _logger.i('User role updated: $userId to $role');
@@ -236,7 +239,7 @@ class AuthProvider with ChangeNotifier {
       _error = null;
 
       await _authService.updateUserStatus(userId, status);
-      if (userId == _user?.uid) {
+      if (userId == _user?.id) {
         _userStatus = status;
       }
       _logger.i('User status updated: $userId to $status');
