@@ -1,26 +1,28 @@
 enum MachineStatus {
-  offline, // Machine is not connected
-  idle, // Machine is connected but not running
-  running, // Machine is running an experiment
-  error, // Machine has encountered an error
-  maintenance // Machine is under maintenance
+  offline,
+  idle,
+  running,
+  error,
+  maintenance
 }
 
 class Machine {
-  final String id; // Unique identifier for the machine
-  final String serialNumber; // Physical serial number
-  final String location; // Lab location identifier
-  final String labName; // Name of the lab
-  final String labInstitution; // Institution/Organization name
-  final String model; // Model number/name
-  final String machineType; // Type of ALD machine
-  final DateTime installDate; // Installation date
-  final MachineStatus status; // Current operational status
-  final String? currentOperator; // ID of current operator (if any)
-  final String? currentExperiment; // ID of current running experiment (if any)
-  final DateTime lastMaintenance; // Last maintenance date
-  final String adminId; // ID of the machine admin
-  final bool isActive; // Whether the machine is active in the system
+  final String id;
+  final String serialNumber;
+  final String location;
+  final String labName;
+  final String labInstitution;
+  final String model;
+  final String machineType;
+  final DateTime installDate;
+  final MachineStatus status;
+  final String? currentOperatorId;
+  final String? currentProcessId;
+  final DateTime lastMaintenance;
+  final String adminId;
+  final bool isActive;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Machine({
     required this.id,
@@ -32,12 +34,16 @@ class Machine {
     required this.machineType,
     required this.installDate,
     this.status = MachineStatus.offline,
-    this.currentOperator,
-    this.currentExperiment,
+    this.currentOperatorId,
+    this.currentProcessId,
     required this.lastMaintenance,
     required this.adminId,
     this.isActive = true,
-  });
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) :
+    this.createdAt = createdAt ?? DateTime.now(),
+    this.updatedAt = updatedAt ?? DateTime.now();
 
   Machine copyWith({
     String? id,
@@ -49,11 +55,13 @@ class Machine {
     String? machineType,
     DateTime? installDate,
     MachineStatus? status,
-    String? currentOperator,
-    String? currentExperiment,
+    String? currentOperatorId,
+    String? currentProcessId,
     DateTime? lastMaintenance,
     String? adminId,
     bool? isActive,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Machine(
       id: id ?? this.id,
@@ -65,11 +73,78 @@ class Machine {
       machineType: machineType ?? this.machineType,
       installDate: installDate ?? this.installDate,
       status: status ?? this.status,
-      currentOperator: currentOperator ?? this.currentOperator,
-      currentExperiment: currentExperiment ?? this.currentExperiment,
+      currentOperatorId: currentOperatorId ?? this.currentOperatorId,
+      currentProcessId: currentProcessId ?? this.currentProcessId,
       lastMaintenance: lastMaintenance ?? this.lastMaintenance,
       adminId: adminId ?? this.adminId,
       isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+
+  // Convert from Map (database) to Machine object
+  factory Machine.fromMap(Map<String, dynamic> map) {
+    return Machine(
+      id: map['id'],
+      serialNumber: map['serial_number'],
+      location: map['location'],
+      labName: map['lab_name'],
+      labInstitution: map['lab_institution'],
+      model: map['model'],
+      machineType: map['machine_type'],
+      installDate: DateTime.parse(map['install_date']),
+      status: _parseStatus(map['status']),
+      currentOperatorId: map['current_operator_id'],
+      currentProcessId: map['current_process_id'],
+      lastMaintenance: DateTime.parse(map['last_maintenance_date']),
+      adminId: map['admin_id'],
+      isActive: map['is_active'],
+      createdAt: DateTime.parse(map['created_at']),
+      updatedAt: DateTime.parse(map['updated_at']),
+    );
+  }
+
+  // Convert Machine object to Map (database)
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'serial_number': serialNumber,
+      'location': location,
+      'lab_name': labName,
+      'lab_institution': labInstitution,
+      'model': model,
+      'machine_type': machineType,
+      'install_date': installDate.toIso8601String(),
+      'status': status.toString().split('.').last,
+      'current_operator_id': currentOperatorId,
+      'current_process_id': currentProcessId,
+      'last_maintenance_date': lastMaintenance.toIso8601String(),
+      'admin_id': adminId,
+      'is_active': isActive,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  static MachineStatus _parseStatus(String status) {
+    switch (status.toLowerCase()) {
+      case 'offline':
+        return MachineStatus.offline;
+      case 'idle':
+        return MachineStatus.idle;
+      case 'running':
+        return MachineStatus.running;
+      case 'error':
+        return MachineStatus.error;
+      case 'maintenance':
+        return MachineStatus.maintenance;
+      default:
+        return MachineStatus.offline;
+    }
+  }
+
+  static MachineStatus parseStatus(String status) {
+    return _parseStatus(status);
   }
 }
