@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:logger/logger.dart';
+import 'dart:async';
 import 'core/auth/services/auth_service.dart';
 import 'core/services/navigation_service.dart';
 import 'core/auth/providers/auth_provider.dart';
@@ -9,6 +10,7 @@ import 'core/config/app_config.dart';
 import 'core/config/route_config.dart';
 import 'core/config/theme_config.dart';
 import 'core/config/provider_config.dart';
+import 'core/config/env.dart';
 import 'core/auth/screens/login_screen.dart';
 import 'features/dashboard/screens/machine_dashboard_screen.dart';
 
@@ -26,44 +28,165 @@ final logger = Logger(
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  try {
-    logger.i('Starting application initialization');
-    WidgetsFlutterBinding.ensureInitialized();
+  // Catch all errors, including those in the zone
+  runZonedGuarded(() async {
+    try {
+      logger.i('Starting application initialization');
+      WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize Supabase
-    await Supabase.initialize(
-      url: 'https://yceyfsqusdmcwgkwxcnt.supabase.co',
-      anonKey:
-          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljZXlmc3F1c2RtY3dna3d4Y250Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU5OTYzNzUsImV4cCI6MjA1MTU3MjM3NX0.tiMdbAs79ZOS3PhnEUxXq_g5JLLXG8-o_a7VAIN6cd8',
-    );
+      // Set up error handling for Flutter errors
+      FlutterError.onError = (FlutterErrorDetails details) {
+        logger.e('Flutter error: ${details.exception}', error: details.exception, stackTrace: details.stack);
+      };
 
-    final authService = AuthService();
-    final navigationService = NavigationService();
-    final themeConfig = ThemeConfig();
-    final routeConfig = RouteConfig();
-    final providerConfig = ProviderConfig();
+      logger.i('Attempting to initialize Supabase...');
+      try {
+        await Supabase.initialize(
+          url: Env.supabaseUrl,
+          anonKey: Env.supabaseAnonKey,
+        );
+        logger.i('Supabase initialized successfully');
+      } catch (e, stackTrace) {
+        logger.e('Failed to initialize Supabase', error: e, stackTrace: stackTrace);
+        runApp(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      SizedBox(height: 16),
+                      Text(
+                        'Initialization Error',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Failed to connect to the server. Please check your internet connection and try again.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.red),
+                      ),
+                      if (e.toString().isNotEmpty) ...[
+                        SizedBox(height: 16),
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            e.toString(),
+                            style: TextStyle(fontSize: 12),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 24),
+                      ElevatedButton(
+                        onPressed: () {
+                          // Restart the app
+                          main();
+                        },
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        return;
+      }
 
-    final appConfig = AppConfig(
-      themeConfig: themeConfig,
-      routeConfig: routeConfig,
-      providerConfig: providerConfig,
-      navigationService: navigationService,
-    );
+      logger.i('Initializing services...');
+      final authService = AuthService();
+      await authService.initialize(); // Initialize AuthService first
 
-    runApp(
-      MultiProvider(
-        providers: [
-          ...ProviderConfig.providers,
-          Provider<AppConfig>.value(value: appConfig),
-        ],
-        child: MyApp(appConfig: appConfig),
-      ),
-    );
-  } catch (e, stackTrace) {
-    logger.e('Failed to initialize application',
-        error: e, stackTrace: stackTrace);
-    rethrow;
-  }
+      final navigationService = NavigationService();
+      final themeConfig = ThemeConfig();
+      final routeConfig = RouteConfig();
+      final providerConfig = ProviderConfig();
+
+      logger.i('Creating AppConfig...');
+      final appConfig = AppConfig(
+        themeConfig: themeConfig,
+        routeConfig: routeConfig,
+        providerConfig: providerConfig,
+        navigationService: navigationService,
+      );
+
+      logger.i('Running app with providers...');
+      runApp(
+        MultiProvider(
+          providers: [
+            ...ProviderConfig.providers,
+            Provider<AppConfig>.value(value: appConfig),
+          ],
+          child: MyApp(appConfig: appConfig),
+        ),
+      );
+    } catch (e, stackTrace) {
+      logger.e('Fatal error during initialization',
+          error: e, stackTrace: stackTrace);
+      runApp(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, color: Colors.red, size: 48),
+                    SizedBox(height: 16),
+                    Text(
+                      'Fatal Error',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'A fatal error occurred while starting the app.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.red),
+                    ),
+                    if (e.toString().isNotEmpty) ...[
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          e.toString(),
+                          style: TextStyle(fontSize: 12),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Restart the app
+                        main();
+                      },
+                      child: Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  }, (error, stack) {
+    logger.e('Uncaught error in zone', error: error, stackTrace: stack);
+  });
 }
 
 class MyApp extends StatelessWidget {
