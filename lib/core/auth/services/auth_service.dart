@@ -15,11 +15,47 @@ class AuthService {
     ),
   );
 
+  bool _initialized = false;
+
   // Current user getter
   User? get currentUser => _supabase.auth.currentUser;
 
   // Auth state changes stream
   Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange;
+
+  // Initialize service
+  Future<void> initialize() async {
+    if (_initialized) return;
+
+    try {
+      _logger.i('Initializing AuthService');
+      // Check if the users table exists and create it if it doesn't
+      await _ensureUsersTableExists();
+      _initialized = true;
+      _logger.i('AuthService initialized successfully');
+    } catch (e, stackTrace) {
+      _logger.e('Failed to initialize AuthService', error: e, stackTrace: stackTrace);
+      // Don't rethrow - we want to handle this gracefully
+    }
+  }
+
+  Future<void> _ensureUsersTableExists() async {
+    try {
+      // Try to query the users table
+      await _supabase.from('users').select('id').limit(1);
+      _logger.i('Users table exists');
+    } catch (e) {
+      _logger.w('Users table might not exist, attempting to create it');
+      try {
+        // Create the users table if it doesn't exist
+        await _supabase.rpc('create_users_table');
+        _logger.i('Users table created successfully');
+      } catch (e, stackTrace) {
+        _logger.e('Failed to create users table', error: e, stackTrace: stackTrace);
+        // Don't rethrow - we'll handle missing table gracefully
+      }
+    }
+  }
 
   // Sign in with email and password
   Future<User?> signIn(
@@ -62,16 +98,45 @@ class AuthService {
     required String email,
     required String password,
     required String name,
-    required String machineSerial,
+    String? machineSerial,
   }) async {
     try {
       _logger.i('Attempting sign up for user: $email');
 
-      // Validate machine serial
-      if (!await _validateMachineSerial(machineSerial)) {
-        throw Exception('Invalid machine serial number');
+      // Check if user already exists in users table
+      final existingUser = await _supabase
+          .from('users')
+          .select()
+          .eq('email', email as Object)
+          .single();
+
+      // If user exists but is pending registration, allow sign up
+      if (existingUser != null && existingUser['status'] != 'pending_registration') {
+        throw Exception('User already exists');
       }
 
+      // Determine user role and status based on existing record
+      UserRole role = UserRole.user;
+      String status = 'pending';
+
+      if (existingUser != null) {
+        // User was pre-created (admin case)
+        role = UserRole.fromString(existingUser['role']);
+        status = existingUser['status'];
+      } else if (machineSerial != null) {
+        // Validate machine serial for regular users
+        final machine = await _supabase
+            .from('machines')
+            .select()
+            .eq('serial_number', machineSerial)
+            .single();
+
+        if (machine == null) {
+          throw Exception('Invalid machine serial number');
+        }
+      }
+
+      // Create auth user
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
@@ -81,12 +146,13 @@ class AuthService {
       if (user != null) {
         _logger.i('Sign up successful for user: ${user.id}');
 
-        // Create user profile
+        // Create or update user profile
         await _createUserProfile(
           user,
-          UserRole.user,
+          role,
           name: name,
           machineSerial: machineSerial,
+          status: status,
         );
 
         return user;
@@ -112,15 +178,17 @@ class AuthService {
     }
   }
 
-  // Get user role
+  // Get user role with fallback
   Future<UserRole> getUserRole(String userId) async {
+    if (!_initialized) await initialize();
+
     try {
       _logger.d('Getting user role for: $userId');
       final response = await _supabase
           .from('users')
           .select('role')
           .eq('id', userId)
-          .single();
+          .maybeSingle(); // Use maybeSingle instead of single to avoid errors
 
       if (response == null) {
         _logger.w('User profile not found, defaulting to user role');
@@ -137,28 +205,30 @@ class AuthService {
     }
   }
 
-  // Get user status
-  Future<String?> getUserStatus(String userId) async {
+  // Get user status with fallback
+  Future<String> getUserStatus(String userId) async {
+    if (!_initialized) await initialize();
+
     try {
       _logger.d('Getting user status for: $userId');
       final response = await _supabase
           .from('users')
           .select('status')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
 
       if (response == null) {
-        _logger.w('User profile not found');
-        return null;
+        _logger.w('User profile not found, defaulting to pending status');
+        return 'pending';
       }
 
-      final status = response['status'] as String?;
+      final status = response['status'] as String? ?? 'pending';
       _logger.d('User status found: $status');
 
       return status;
     } catch (e, stackTrace) {
       _logger.e('Error getting user status', error: e, stackTrace: stackTrace);
-      return null;
+      return 'pending'; // Default to pending on error
     }
   }
 
@@ -211,20 +281,9 @@ class AuthService {
     UserRole role, {
     String? name,
     String? machineSerial,
+    String status = 'pending',
   }) async {
     try {
-      String status;
-      switch (role) {
-        case UserRole.superAdmin:
-        case UserRole.admin:
-          status = 'active';
-          break;
-        case UserRole.operator:
-        case UserRole.user:
-          status = 'pending';
-          break;
-      }
-
       final userData = {
         'id': user.id,
         'email': user.email,
@@ -237,8 +296,23 @@ class AuthService {
       if (name != null) userData['name'] = name;
       if (machineSerial != null) userData['machine_serial'] = machineSerial;
 
-      await _supabase.from('users').insert(userData);
-      _logger.i('User profile created successfully');
+      // If user already exists, update it
+      final existingUser = await _supabase
+          .from('users')
+          .select()
+          .eq('email', user.email != null ? user.email as Object : '')
+          .single();
+
+      if (existingUser != null) {
+        await _supabase
+            .from('users')
+            .update(userData)
+            .eq('email', user.email as Object);
+      } else {
+        await _supabase.from('users').insert(userData);
+      }
+
+      _logger.i('User profile created/updated successfully');
     } catch (e, stackTrace) {
       _logger.e('Error creating user profile',
           error: e, stackTrace: stackTrace);
@@ -246,24 +320,16 @@ class AuthService {
     }
   }
 
-  Future<bool> _validateMachineSerial(String serial) async {
-    // TODO: Implement actual machine serial validation
-    _logger.w(
-        'Machine serial validation not implemented, returning true for testing');
-    return true;
-  }
 
   UserRole _parseUserRole(String roleStr) {
-    switch (roleStr.toLowerCase()) {
-      case 'superadmin':
-        return UserRole.superAdmin;
-      case 'admin':
-        return UserRole.admin;
-      case 'operator':
-        return UserRole.operator;
-      case 'user':
-      default:
-        return UserRole.user;
+    try {
+      return UserRole.values.firstWhere(
+        (role) => role.toString().toLowerCase() == roleStr.toLowerCase(),
+        orElse: () => UserRole.user,
+      );
+    } catch (e) {
+      _logger.w('Invalid role string: $roleStr, defaulting to user');
+      return UserRole.user;
     }
   }
 }
