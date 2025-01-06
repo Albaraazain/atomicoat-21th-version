@@ -51,6 +51,7 @@ dependencies:
   supabase_flutter: ^2.3.4
   equatable: any
   flutter_launcher_icons: ^0.14.2
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
