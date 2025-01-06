@@ -60,194 +60,95 @@ Safety is a fundamental aspect of the system's design. Like a modern car's vario
 
 Let me start with detailing the first major component of our system: Authentication and Session Management.
 
-## Authentication and Session Management
+## Authentication and User Management
 
-The authentication and session management system serves as the gateway to our ALD control system, ensuring secure access while maintaining the critical one-operator-per-machine principle. Think of it as an advanced key card system that not only controls who can enter but also tracks and manages their active sessions.
+The authentication and user management system implements a hierarchical access control model with machine-specific assignments. This ensures secure access while maintaining the critical one-operator-per-machine principle.
 
-### Core Components
+### User Roles and Hierarchy
 
-#### AuthService
-This service handles all authentication-related operations, working directly with your authentication provider (like Firebase Auth). It manages:
+1. **Super Admin**
+   - Created during system initialization
+   - Can create and manage all machines
+   - Can assign machine admins to machines
+   - Has system-wide access
 
+2. **Machine Admin**
+   - Created by super admin during machine creation
+   - Manages specific assigned machines
+   - Can approve/reject machine operators
+   - Monitors machine operations
+
+3. **Operator**
+   - Registered with machine serial number
+   - Must be approved by machine admin
+   - Can operate assigned machines
+   - Can execute and monitor processes
+
+### Registration and Assignment Flow
+
+1. **Super Admin Creation**:
+   - Created during system initialization
+   - No machine serial required
+   - Automatically activated
+
+2. **Machine and Admin Creation**:
 ```dart
-class AuthService {
-  // Core authentication operations
-  Future<UserCredential> signIn(String email, String password);
-  Future<void> signOut();
-
-  // Session state monitoring
-  Stream<User?> get authStateChanges;
-
-  // Role and permission management
-  Future<UserRole> getUserRole(String userId);
-  Future<List<String>> getUserPermissions(String userId);
-}
-```
-
-#### OperatorSession
-This represents an active operator's interaction with a machine. It's crucial for maintaining the single-operator principle:
-
-```dart
-class OperatorSession {
-  final String operatorId;
-  final String machineId;
-  final DateTime startTime;
-  final SessionStatus status;
-
-  // Tracks what the operator is currently doing
-  ProcessStatus? currentProcessStatus;
-
-  // Safety and validation methods
-  bool canStartNewProcess();
-  bool canModifyParameters();
-
-  // Session management
-  Future<void> endSession();
-  Future<void> extendSession(Duration duration);
-}
-```
-
-#### AuthProvider
-This provider manages the application-wide authentication state and session information:
-
-```dart
-class AuthProvider extends ChangeNotifier {
-  User? _currentUser;
-  OperatorSession? _currentSession;
-
-  // Active session tracking
-  bool get hasActiveSession => _currentSession != null;
-
-  // Permission checking
-  bool canOperateMachine(String machineId);
-  bool canCreateRecipes();
-
-  // Session management
-  Future<void> startMachineSession(String machineId);
-  Future<void> endCurrentSession();
-}
-```
-
-### Session Workflow
-
-1. Initial Authentication:
-```dart
-// Operator logs in
-await authService.signIn(email, password);
-
-// System loads operator permissions
-final permissions = await authService.getUserPermissions(userId);
-
-// Provider updates application state
-authProvider.updateCurrentUser(user, permissions);
-```
-
-2. Starting a Machine Session:
-```dart
-// Check machine availability
-if (await machineProvider.isMachineAvailable(machineId)) {
-  // Create new operator session
-  final session = await authProvider.startMachineSession(machineId);
-
-  // Initialize machine monitoring
-  await machineProvider.initializeForOperator(session);
-
-  // Begin parameter monitoring
-  await parameterMonitor.startMonitoring(machineId);
-}
-```
-
-3. Session Validation:
-```dart
-// Continuous session validation
-Timer.periodic(Duration(minutes: 1), (_) {
-  if (session.hasExpired()) {
-    // Warn operator
-    notificationService.showSessionExpiringWarning();
-
-    // Begin shutdown sequence if no response
-    if (session.gracePeriodExpired()) {
-      processProvider.initiateShutdown();
-    }
-  }
+// Super admin creates machine with admin
+await machineManagementService.createMachine({
+  name: "ALD-1",
+  serialNumber: "SN001",
+  location: "Lab A",
+  machineType: "Thermal",
+  model: "ALD-3000",
+  adminEmail: "admin@example.com"  // Machine admin's email
 });
 ```
+   - Creates machine record
+   - Creates machine admin account (pending registration)
+   - Creates machine-admin assignment
+   - Admin receives registration email
 
-### Safety and Security Considerations
+3. **Machine Admin Registration**:
+   - Uses registration link
+   - No machine serial required (pre-assigned)
+   - Automatically activated upon registration
+   - Gains access to assigned machine
 
-1. Session Integrity:
-- Each operator can only have one active session
-- Sessions have a maximum duration
-- Idle sessions are automatically terminated
-
-2. Permission Enforcement:
-- All operations are validated against operator permissions
-- Machine-specific restrictions are enforced
-- Critical operations require additional confirmation
-
-3. Session Recovery:
+4. **Operator Registration**:
 ```dart
-// Handling unexpected disconnections
-Future<void> handleDisconnection() async {
-  // Save current process state
-  await processProvider.saveProcessState();
+// Operator registers with machine serial
+await authService.signUp({
+  email: "operator@example.com",
+  password: "secure_password",
+  name: "John Doe",
+  machineSerial: "SN001"  // Required for operators
+});
+```
+   - Must provide valid machine serial
+   - Status starts as 'pending'
+   - Requires machine admin approval
 
-  // Mark session for recovery
-  await sessionManager.markForRecovery(sessionId);
+### Machine Assignments
 
-  // Initiate safe machine state
-  await machineProvider.enterSafeState();
-}
+Machine assignments are managed through a dedicated table that links users to machines:
+
+```sql
+CREATE TABLE machine_assignments (
+    id UUID PRIMARY KEY,
+    machine_id UUID REFERENCES machines(id),
+    user_id UUID REFERENCES users(id),
+    role TEXT CHECK (role IN ('machineadmin', 'operator')),
+    status TEXT DEFAULT 'active',
+    UNIQUE(machine_id, user_id)
+);
 ```
 
-### Integration with Other Components
+This enables:
+- One machine can have multiple operators
+- One operator can be assigned to multiple machines
+- Clear tracking of machine-user relationships
+- Role-specific permissions per machine
 
-The authentication system interacts with several other system components:
-
-1. Machine Control:
-```dart
-// Session required for machine operations
-if (!authProvider.hasActiveSession) {
-  throw NotAuthorizedException('Active session required');
-}
-
-// Permission check for operation
-if (!authProvider.canModifyParameters()) {
-  throw NotAuthorizedException('Insufficient permissions');
-}
-```
-
-2. Process Execution:
-```dart
-// Verify session before process start
-Future<void> startProcess(Recipe recipe) async {
-  final session = authProvider.currentSession;
-  if (!session?.canStartNewProcess()) {
-    throw SessionException('Cannot start new process');
-  }
-
-  // Update session status
-  await session?.updateStatus(SessionStatus.processing);
-}
-```
-
-3. Data Recording:
-```dart
-// Automatic session logging
-class SessionLogger {
-  Future<void> logSessionEvent(SessionEvent event) async {
-    final logEntry = SessionLogEntry(
-      operatorId: session.operatorId,
-      machineId: session.machineId,
-      eventType: event.type,
-      timestamp: DateTime.now(),
-      details: event.details
-    );
-
-    await logRepository.saveSessionLog(logEntry);
-  }
-}
-```
 Let me detail the Machine Management component of our ALD system. This is a crucial component that handles the core functionality and state of individual ALD machines.
 
 ## Machine Management
