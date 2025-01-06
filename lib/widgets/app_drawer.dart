@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/auth/providers/auth_provider.dart';
 import '../core/config/route_config.dart';
+import '../core/services/logger_service.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  AppDrawer({super.key}) : _logger = LoggerService('AppDrawer');
+  final LoggerService _logger;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +77,30 @@ class AppDrawer extends StatelessWidget {
             },
           ),
           Divider(),
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              _logger.d(
+                'User Role: ${authProvider.userRole}, '
+                'Is Admin: ${authProvider.isAdmin}, '
+                'Is Super Admin: ${authProvider.isSuperAdmin}, '
+                'Has Admin Privileges: ${authProvider.hasAdminPrivileges}',
+              );
+
+              if (authProvider.hasAdminPrivileges) {
+                _logger.d('Showing User Management tile');
+                return ListTile(
+                  leading: Icon(Icons.people),
+                  title: Text('User Management'),
+                  onTap: () {
+                    _logger.d('Navigating to User Management');
+                    Navigator.pushNamed(context, RouteConfig.userManagementRoute);
+                  },
+                );
+              }
+              _logger.d('Hiding User Management tile');
+              return SizedBox.shrink();
+            },
+          ),
           ListTile(
             leading: Icon(Icons.settings),
             title: Text('Settings'),

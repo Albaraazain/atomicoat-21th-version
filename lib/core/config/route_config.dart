@@ -14,6 +14,7 @@ import '../../features/recipes/screens/recipe_creation_screen.dart';
 import '../../core/auth/screens/login_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/help_support_screen.dart';
+import '../../features/users/screens/user_management_screen.dart';
 
 class RouteConfig {
   // Auth routes
@@ -23,6 +24,9 @@ class RouteConfig {
   // Dashboard routes
   static const String mainDashboardRoute = '/dashboard';
   static const String adminDashboardRoute = '/admin';
+
+  // User management route
+  static const String userManagementRoute = '/users/manage';
 
   // Machine routes
   static const String machineListRoute = '/machines';
@@ -60,6 +64,7 @@ class RouteConfig {
     recipeListRoute: (context) => const RecipeListScreen(),
     settingsRoute: (context) => const SettingsScreen(),
     helpRoute: (context) => const HelpSupportScreen(),
+    userManagementRoute: (context) => const UserManagementScreen(),
   };
 
   static Route<dynamic>? generateRoute(RouteSettings settings) {
