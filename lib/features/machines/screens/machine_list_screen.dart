@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
 import '../providers/machine_provider.dart';
+import '../models/machine.dart';
+import '../../../core/auth/providers/auth_provider.dart';
 import '../../../widgets/app_drawer.dart';
 
 class MachineListScreen extends StatefulWidget {
@@ -14,6 +16,23 @@ class MachineListScreen extends StatefulWidget {
 class _MachineListScreenState extends State<MachineListScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _logger = Logger();
+  bool _isInitialized = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isInitialized) {
+      _initializeMachines();
+      _isInitialized = true;
+    }
+  }
+
+  Future<void> _initializeMachines() async {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.userId != null) {
+      await context.read<MachineProvider>().loadMachinesForAdmin(authProvider.userId!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,27 +59,73 @@ class _MachineListScreenState extends State<MachineListScreen> {
       drawer: AppDrawer(),
       body: Consumer<MachineProvider>(
         builder: (context, machineProvider, child) {
-          return _buildMachineList();
+          if (machineProvider.isLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (machineProvider.error != null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Error loading machines',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    machineProvider.error!,
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _initializeMachines,
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (machineProvider.machines.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'No machines found',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/machines/create'),
+                    child: Text('Add Machine'),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: _initializeMachines,
+            child: ListView.builder(
+              padding: EdgeInsets.all(16),
+              itemCount: machineProvider.machines.length,
+              itemBuilder: (context, index) {
+                final machine = machineProvider.machines[index];
+                return _buildMachineCard(
+                  id: machine.id,
+                  name: '${machine.model} - ${machine.serialNumber}',
+                  status: machine.status,
+                  lastMaintenance: machine.lastMaintenance,
+                  location: machine.location,
+                  context: context,
+                );
+              },
+            ),
+          );
         },
       ),
-    );
-  }
-
-  Widget _buildMachineList() {
-    // Hardcoded machines for now
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return _buildMachineCard(
-          id: 'ALD-${1000 + index}',
-          name: 'ALD Machine ${index + 1}',
-          status: _getRandomStatus(),
-          lastMaintenance: DateTime.now().subtract(Duration(days: index * 10)),
-          totalProcesses: 100 + index * 20,
-          context: context,
-        );
-      },
     );
   }
 
@@ -69,7 +134,7 @@ class _MachineListScreenState extends State<MachineListScreen> {
     required String name,
     required MachineStatus status,
     required DateTime lastMaintenance,
-    required int totalProcesses,
+    required String location,
     required BuildContext context,
   }) {
     return Card(
@@ -101,7 +166,7 @@ class _MachineListScreenState extends State<MachineListScreen> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          id,
+                          location,
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
@@ -124,9 +189,9 @@ class _MachineListScreenState extends State<MachineListScreen> {
                         '${lastMaintenance.day}/${lastMaintenance.month}/${lastMaintenance.year}',
                   ),
                   _buildInfoItem(
-                    icon: Icons.analytics,
-                    label: 'Total Processes',
-                    value: totalProcesses.toString(),
+                    icon: Icons.place,
+                    label: 'Location',
+                    value: location,
                   ),
                   _buildActionButton(context, id),
                 ],
@@ -140,8 +205,9 @@ class _MachineListScreenState extends State<MachineListScreen> {
 
   Widget _buildStatusBadge(MachineStatus status) {
     final colors = {
-      MachineStatus.idle: Colors.grey,
-      MachineStatus.processing: Colors.green,
+      MachineStatus.offline: Colors.grey,
+      MachineStatus.idle: Colors.blue,
+      MachineStatus.running: Colors.green,
       MachineStatus.error: Colors.red,
       MachineStatus.maintenance: Colors.orange,
     };
@@ -255,21 +321,4 @@ class _MachineListScreenState extends State<MachineListScreen> {
       ),
     );
   }
-
-  MachineStatus _getRandomStatus() {
-    final statuses = [
-      MachineStatus.idle,
-      MachineStatus.processing,
-      MachineStatus.error,
-      MachineStatus.maintenance,
-    ];
-    return statuses[DateTime.now().microsecond % statuses.length];
-  }
-}
-
-enum MachineStatus {
-  idle,
-  processing,
-  error,
-  maintenance,
 }
