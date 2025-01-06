@@ -1,6 +1,6 @@
 enum UserRole {
   superAdmin,
-  admin,
+  machineadmin,
   operator,
   user;
 
@@ -8,8 +8,8 @@ enum UserRole {
     switch (value.toLowerCase()) {
       case 'superadmin':
         return UserRole.superAdmin;
-      case 'admin':
-        return UserRole.admin;
+      case 'machineadmin':
+        return UserRole.machineadmin;
       case 'operator':
         return UserRole.operator;
       case 'user':
@@ -24,12 +24,12 @@ enum UserRole {
   }
 
   bool get isSuperAdmin => this == UserRole.superAdmin;
-  bool get isAdmin => this == UserRole.admin;
+  bool get isMachineAdmin => this == UserRole.machineadmin;
   bool get isOperator => this == UserRole.operator;
   bool get isUser => this == UserRole.user;
 
   // Helper method to check if user has admin-level or higher privileges
-  bool get hasAdminPrivileges => this == UserRole.admin || this == UserRole.superAdmin;
+  bool get hasAdminPrivileges => this == UserRole.machineadmin || this == UserRole.superAdmin;
 
   // Helper method to check if user can manage machines (superAdmin only)
   bool get canManageMachines => this == UserRole.superAdmin;
