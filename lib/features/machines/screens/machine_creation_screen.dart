@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/machine_provider.dart';
+import '../../../core/auth/providers/auth_provider.dart';
 
 class MachineCreationScreen extends StatefulWidget {
   const MachineCreationScreen({super.key});
@@ -9,20 +12,23 @@ class MachineCreationScreen extends StatefulWidget {
 
 class _MachineCreationScreenState extends State<MachineCreationScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _machineNameController = TextEditingController();
+  final _labNameController = TextEditingController();
+  final _labInstitutionController = TextEditingController();
   final _serialNumberController = TextEditingController();
   final _locationController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _adminEmailController = TextEditingController();
 
   String _selectedMachineType = 'Thermal ALD';
-  String _selectedModel = 'Model A';
+  String _selectedModel = 'ALD-2000';
+  bool _isLoading = false;
 
   @override
   void dispose() {
-    _machineNameController.dispose();
+    _labNameController.dispose();
+    _labInstitutionController.dispose();
     _serialNumberController.dispose();
     _locationController.dispose();
-    _descriptionController.dispose();
+    _adminEmailController.dispose();
     super.dispose();
   }
 
@@ -42,18 +48,6 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSectionTitle('Basic Information'),
-              SizedBox(height: 16),
-              _buildTextField(
-                controller: _machineNameController,
-                label: 'Machine Name',
-                hint: 'Enter machine name',
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter machine name';
-                  }
-                  return null;
-                },
-              ),
               SizedBox(height: 16),
               _buildTextField(
                 controller: _serialNumberController,
@@ -83,7 +77,7 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
               _buildDropdown(
                 label: 'Model',
                 value: _selectedModel,
-                items: ['Model A', 'Model B', 'Model C'],
+                items: ['ALD-2000', 'ALD-3000', 'ALD-4000'],
                 onChanged: (value) {
                   if (value != null) {
                     setState(() => _selectedModel = value);
@@ -91,7 +85,31 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
                 },
               ),
               SizedBox(height: 24),
-              _buildSectionTitle('Location Information'),
+              _buildSectionTitle('Lab Information'),
+              SizedBox(height: 16),
+              _buildTextField(
+                controller: _labNameController,
+                label: 'Lab Name',
+                hint: 'Enter lab name',
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter lab name';
+                  }
+                  return null;
+                },
+              ),
+              SizedBox(height: 16),
+              _buildTextField(
+                controller: _labInstitutionController,
+                label: 'Lab Institution',
+                hint: 'Enter institution name',
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter institution name';
+                  }
+                  return null;
+                },
+              ),
               SizedBox(height: 16),
               _buildTextField(
                 controller: _locationController,
@@ -105,13 +123,21 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
                 },
               ),
               SizedBox(height: 24),
-              _buildSectionTitle('Additional Information'),
+              _buildSectionTitle('Admin Information'),
               SizedBox(height: 16),
               _buildTextField(
-                controller: _descriptionController,
-                label: 'Description',
-                hint: 'Enter machine description',
-                maxLines: 3,
+                controller: _adminEmailController,
+                label: 'Admin Email',
+                hint: 'Enter admin email',
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter admin email';
+                  }
+                  if (!value.contains('@')) {
+                    return 'Please enter a valid email';
+                  }
+                  return null;
+                },
               ),
               SizedBox(height: 32),
               _buildSubmitButton(),
@@ -174,10 +200,6 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Colors.red),
             ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.red),
-            ),
           ),
         ),
       ],
@@ -230,31 +252,84 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
       width: double.infinity,
       height: 50,
       child: ElevatedButton(
-        onPressed: _handleSubmit,
+        onPressed: _isLoading ? null : _handleSubmit,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        child: Text(
-          'Create Machine',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        child: _isLoading
+            ? CircularProgressIndicator(color: Colors.white)
+            : Text(
+                'Create Machine',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
 
-  void _handleSubmit() {
+  Future<void> _handleSubmit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Implement machine creation logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Machine created successfully')),
-      );
-      Navigator.pop(context);
+      setState(() => _isLoading = true);
+
+      try {
+        final machineProvider = context.read<MachineProvider>();
+
+        final response = await machineProvider.createMachine(
+          serialNumber: _serialNumberController.text,
+          location: _locationController.text,
+          labName: _labNameController.text,
+          labInstitution: _labInstitutionController.text,
+          model: _selectedModel,
+          machineType: _selectedMachineType,
+          adminEmail: _adminEmailController.text,
+        );
+
+        if (response != null) {
+          if (!mounted) return;
+
+          // Show success message with admin credentials if new admin was created
+          if (response['admin_password'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Machine created successfully. Admin credentials:\nEmail: ${response['admin_email']}\nPassword: ${response['admin_password']}'
+                ),
+                duration: Duration(seconds: 10),
+                action: SnackBarAction(
+                  label: 'Dismiss',
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  },
+                ),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Machine created successfully')),
+            );
+          }
+          Navigator.pop(context);
+        } else {
+          throw Exception('Failed to create machine');
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      }
     }
   }
 }
