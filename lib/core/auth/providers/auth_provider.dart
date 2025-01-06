@@ -26,6 +26,7 @@ class AuthProvider with ChangeNotifier {
   String? _userStatus;
   bool _isLoading = true;
   String? _error;
+  bool _initialized = false;
 
   // Getters
   User? get user => _user;
@@ -34,12 +35,13 @@ class AuthProvider with ChangeNotifier {
   UserRole? get userRole => _userRole;
   String? get userStatus => _userStatus;
   bool get isAuthenticated => _user != null;
-  bool get isAdmin => _userRole == UserRole.admin;
+  bool get isAdmin => _userRole == UserRole.machineadmin;
   bool get isSuperAdmin => _userRole == UserRole.superAdmin;
   bool get hasAdminPrivileges => _userRole?.hasAdminPrivileges ?? false;
   bool get canManageMachines => _userRole?.canManageMachines ?? false;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isInitialized => _initialized;
 
   bool isApproved() {
     return _userStatus == 'active';
@@ -51,9 +53,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> _init() async {
+    if (_initialized) return;
+
     try {
       _logger.i('Initializing authentication state');
       _setLoading(true);
+
+      // Initialize AuthService first
+      await _authService.initialize();
 
       _user = _authService.currentUser;
       if (_user != null) {
@@ -63,9 +70,12 @@ class AuthProvider with ChangeNotifier {
         _logger.i('No current user found during initialization');
       }
 
+      // Listen to auth state changes
       _authService.authStateChanges.listen((state) {
         _handleAuthStateChange(state.session?.user);
       });
+
+      _initialized = true;
     } catch (e, stackTrace) {
       _handleError('Failed to initialize auth provider', e, stackTrace);
     } finally {
@@ -100,8 +110,8 @@ class AuthProvider with ChangeNotifier {
       _userModel = UserModel(
         uid: _user!.id,
         email: _user!.email!,
-        role: _userRole,
-        status: _userStatus,
+        role: _userRole ?? UserRole.user,
+        status: _userStatus ?? 'pending',
       );
 
       _logger.i(
