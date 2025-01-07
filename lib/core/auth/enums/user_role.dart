@@ -2,6 +2,7 @@ enum UserRole {
   superAdmin,
   machineadmin,
   operator,
+  engineer,
   user;
 
   static UserRole fromString(String value) {
@@ -12,6 +13,8 @@ enum UserRole {
         return UserRole.machineadmin;
       case 'operator':
         return UserRole.operator;
+      case 'engineer':
+        return UserRole.engineer;
       case 'user':
       default:
         return UserRole.user;
@@ -26,6 +29,7 @@ enum UserRole {
   bool get isSuperAdmin => this == UserRole.superAdmin;
   bool get isMachineAdmin => this == UserRole.machineadmin;
   bool get isOperator => this == UserRole.operator;
+  bool get isEngineer => this == UserRole.engineer;
   bool get isUser => this == UserRole.user;
 
   // Helper method to check if user has admin-level or higher privileges
