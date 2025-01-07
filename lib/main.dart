@@ -103,7 +103,8 @@ void main() async {
       }
 
       logger.i('Initializing services...');
-      final authService = AuthService();
+      final supabase = Supabase.instance.client;
+      final authService = AuthService(supabase);
       await authService.initialize(); // Initialize AuthService first
 
       final navigationService = NavigationService();
