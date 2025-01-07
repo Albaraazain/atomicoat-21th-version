@@ -6,6 +6,7 @@ class MachineEditScreen extends StatefulWidget {
   const MachineEditScreen({super.key, required this.machineId});
 
   @override
+  // ignore: library_private_types_in_public_api
   _MachineEditScreenState createState() => _MachineEditScreenState();
 }
 
