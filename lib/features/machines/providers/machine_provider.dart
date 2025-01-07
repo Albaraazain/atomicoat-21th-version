@@ -43,11 +43,9 @@ class MachineProvider extends ChangeNotifier {
       );
 
       // If this is a new machine, add it to our local list
-      if (response != null) {
-        final newMachine = Machine.fromMap(response);
-        _machines.add(newMachine);
-        notifyListeners();
-      }
+      final newMachine = Machine.fromMap(response);
+      _machines.add(newMachine);
+      notifyListeners();
 
       _isLoading = false;
       notifyListeners();
