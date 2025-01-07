@@ -17,7 +17,7 @@ class MachineRepository {
 
   String _generatePasswordFromEmail(String email) {
     final emailPrefix = email.split('@')[0];
-    return '${emailPrefix}@2024';
+    return '$emailPrefix@2024';
   }
 
   Future<Map<String, dynamic>> createMachine({
@@ -145,6 +145,135 @@ class MachineRepository {
       await _supabase.from('machine_assignments').insert(assignmentData);
       _logger.d('Machine assignment created');
 
+      // Create default machine components
+      _logger.d('Creating default machine components');
+      final components = [
+        {
+          'machine_id': machineResponse['id'],
+          'name': 'Reaction Chamber',
+          'type': 'chamber',
+          'is_activated': true,
+        },
+        {
+          'machine_id': machineResponse['id'],
+          'name': 'Mass Flow Controller',
+          'type': 'mfc',
+          'is_activated': true,
+        },
+        {
+          'machine_id': machineResponse['id'],
+          'name': 'Precursor Line A',
+          'type': 'precursor_line',
+          'is_activated': true,
+        },
+        {
+          'machine_id': machineResponse['id'],
+          'name': 'Precursor Line B',
+          'type': 'precursor_line',
+          'is_activated': true,
+        },
+        {
+          'machine_id': machineResponse['id'],
+          'name': 'Backline Heater',
+          'type': 'heater',
+          'is_activated': true,
+        },
+        {
+          'machine_id': machineResponse['id'],
+          'name': 'Frontline Heater',
+          'type': 'heater',
+          'is_activated': true,
+        },
+      ];
+
+      _logger.d('Inserting machine components');
+      final componentResponses = await _supabase
+          .from('machine_components')
+          .insert(components)
+          .select();
+      _logger.d('Created ${componentResponses.length} machine components');
+
+      // Create default parameters for each component
+      _logger.d('Creating component parameters');
+      final parameters = [];
+      for (final component in componentResponses) {
+        _logger.d('Setting up parameters for component: ${component['name']}');
+        switch (component['type']) {
+          case 'chamber':
+            parameters.addAll([
+              {
+                'component_id': component['id'],
+                'name': 'temperature',
+                'unit': '°C',
+                'min_value': 0.0,
+                'max_value': 400.0,
+                'current_value': 25.0,
+                'set_value': 25.0,
+              },
+              {
+                'component_id': component['id'],
+                'name': 'pressure',
+                'unit': 'Torr',
+                'min_value': 0.0,
+                'max_value': 760.0,
+                'current_value': 760.0,
+                'set_value': 760.0,
+              },
+            ]);
+            break;
+          case 'mfc':
+            parameters.add({
+              'component_id': component['id'],
+              'name': 'flow_rate',
+              'unit': 'sccm',
+              'min_value': 0.0,
+              'max_value': 1000.0,
+              'current_value': 0.0,
+              'set_value': 0.0,
+            });
+            break;
+          case 'precursor_line':
+            parameters.addAll([
+              {
+                'component_id': component['id'],
+                'name': 'temperature',
+                'unit': '°C',
+                'min_value': 0.0,
+                'max_value': 200.0,
+                'current_value': 25.0,
+                'set_value': 25.0,
+              },
+              {
+                'component_id': component['id'],
+                'name': 'valve_state',
+                'unit': 'boolean',
+                'min_value': 0.0,
+                'max_value': 1.0,
+                'current_value': 0.0,
+                'set_value': 0.0,
+              },
+            ]);
+            break;
+          case 'heater':
+            parameters.add({
+              'component_id': component['id'],
+              'name': 'temperature',
+              'unit': '°C',
+              'min_value': 0.0,
+              'max_value': 200.0,
+              'current_value': 25.0,
+              'set_value': 25.0,
+            });
+            break;
+        }
+      }
+
+      _logger.d('Inserting ${parameters.length} component parameters');
+      await _supabase
+          .from('component_parameters')
+          .insert(parameters);
+      _logger.d('Component parameters created successfully');
+
       // Add credentials to response if new user was created
       if (isNewUser) {
         machineResponse['admin_credentials'] = {
@@ -208,6 +337,35 @@ class MachineRepository {
     try {
       _logger.d('Fetching machines for admin: $adminId');
 
+      // First check if user is superadmin
+      final userResponse = await _supabase
+          .from('users')
+          .select()
+          .eq('id', adminId)
+          .single();
+
+      final isSuper = userResponse['role'] == 'superadmin';
+
+      // If superadmin, return all machines
+      if (isSuper) {
+        _logger.d('User is superadmin, fetching all machines');
+        final response = await _supabase
+            .from('machines')
+            .select('''
+              *,
+              machine_assignments (
+                user_id,
+                role,
+                status
+              )
+            ''')
+            .order('created_at', ascending: false);
+
+        _logger.d('Fetched ${response.length} machines for superadmin');
+        return List<Map<String, dynamic>>.from(response);
+      }
+
+      // Otherwise, return only machines where user is admin
       final response = await _supabase
           .from('machines')
           .select('''
@@ -218,10 +376,10 @@ class MachineRepository {
               status
             )
           ''')
-          .eq('admin_id', adminId);
+          .eq('admin_id', adminId)
+          .order('created_at', ascending: false);
 
       _logger.d('Fetched ${response.length} machines for admin: $adminId');
-
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       _logger.e('Error fetching machines by admin: ${e.toString()}');
