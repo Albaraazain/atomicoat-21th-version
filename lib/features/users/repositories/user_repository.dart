@@ -1,30 +1,48 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/auth/models/user_model.dart';
 import '../../../core/auth/enums/user_role.dart';
-import 'package:logger/logger.dart';
+import '../../../core/services/logger_service.dart';
 
 class UserRepository {
-  final _supabase = Supabase.instance.client;
-  final _logger = Logger();
+  final SupabaseClient _supabase;
+  final LoggerService _logger;
+
+  UserRepository(this._supabase) : _logger = LoggerService('UserRepository');
 
   Future<List<UserModel>> getUsers({String? machineSerial}) async {
     try {
       _logger.i('Fetching users from database${machineSerial != null ? ' for machine $machineSerial' : ''}');
 
-      final query = _supabase
-          .from('users')
-          .select();
+      var query = _supabase.from('users').select('''
+        *,
+        machine_assignments!inner (
+          machine_id,
+          role,
+          status,
+          machines!inner (
+            serial_number
+          )
+        )
+      ''');
 
       // If machineSerial is provided, filter users for that machine
-      final filteredQuery = machineSerial != null
-          ? query.eq('machine_serial', machineSerial)
-          : query;
+      if (machineSerial != null) {
+        query = query.eq('machine_assignments.machines.serial_number', machineSerial);
+      }
 
-      final response = await filteredQuery.order('created_at', ascending: false);
+      final response = await query.order('created_at', ascending: false);
 
       return (response as List).map((userData) {
         String? roleStr = userData['role'] as String?;
         UserRole? role = roleStr != null ? UserRole.fromString(roleStr) : null;
+
+        // Get machine serial from assignments if available
+        String? assignedMachineSerial;
+        if (userData['machine_assignments'] != null &&
+            (userData['machine_assignments'] as List).isNotEmpty &&
+            userData['machine_assignments'][0]['machines'] != null) {
+          assignedMachineSerial = userData['machine_assignments'][0]['machines']['serial_number'] as String?;
+        }
 
         return UserModel(
           uid: userData['id'] as String,
@@ -32,11 +50,11 @@ class UserRepository {
           name: userData['name'] as String?,
           role: role,
           status: userData['status'] as String?,
-          machineSerial: userData['machine_serial'] as String?,
+          machineSerial: assignedMachineSerial,
         );
       }).toList();
-    } catch (e, stackTrace) {
-      _logger.e('Error fetching users', error: e, stackTrace: stackTrace);
+    } catch (e) {
+      _logger.e('Error fetching users: ${e.toString()}');
       rethrow;
     }
   }
@@ -47,16 +65,20 @@ class UserRepository {
 
       // If machineSerial is provided, verify user belongs to that machine
       if (machineSerial != null) {
-        final query = _supabase
-            .from('users')
-            .select();
+        final machine = await _supabase
+            .from('machines')
+            .select('id')
+            .eq('serial_number', machineSerial)
+            .single();
 
-        final user = await query
-            .eq('id', userId)
-            .eq('machine_serial', machineSerial)
+        final assignment = await _supabase
+            .from('machine_assignments')
+            .select()
+            .eq('user_id', userId)
+            .eq('machine_id', machine['id'])
             .maybeSingle();
 
-        if (user == null) {
+        if (assignment == null) {
           throw Exception('User does not belong to this machine');
         }
       }
@@ -68,9 +90,28 @@ class UserRepository {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
+
+      // Update machine assignment role if it exists
+      if (machineSerial != null) {
+        final machine = await _supabase
+            .from('machines')
+            .select('id')
+            .eq('serial_number', machineSerial)
+            .single();
+
+        await _supabase
+            .from('machine_assignments')
+            .update({
+              'role': role.toString(),
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('user_id', userId)
+            .eq('machine_id', machine['id']);
+      }
+
       _logger.i('Role update successful');
-    } catch (e, stackTrace) {
-      _logger.e('Error updating user role', error: e, stackTrace: stackTrace);
+    } catch (e) {
+      _logger.e('Error updating user role: ${e.toString()}');
       rethrow;
     }
   }
@@ -81,16 +122,20 @@ class UserRepository {
 
       // If machineSerial is provided, verify user belongs to that machine
       if (machineSerial != null) {
-        final query = _supabase
-            .from('users')
-            .select();
+        final machine = await _supabase
+            .from('machines')
+            .select('id')
+            .eq('serial_number', machineSerial)
+            .single();
 
-        final user = await query
-            .eq('id', userId)
-            .eq('machine_serial', machineSerial)
+        final assignment = await _supabase
+            .from('machine_assignments')
+            .select()
+            .eq('user_id', userId)
+            .eq('machine_id', machine['id'])
             .maybeSingle();
 
-        if (user == null) {
+        if (assignment == null) {
           throw Exception('User does not belong to this machine');
         }
       }
@@ -102,9 +147,28 @@ class UserRepository {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
+
+      // Update machine assignment status if it exists
+      if (machineSerial != null) {
+        final machine = await _supabase
+            .from('machines')
+            .select('id')
+            .eq('serial_number', machineSerial)
+            .single();
+
+        await _supabase
+            .from('machine_assignments')
+            .update({
+              'status': status,
+              'updated_at': DateTime.now().toIso8601String(),
+            })
+            .eq('user_id', userId)
+            .eq('machine_id', machine['id']);
+      }
+
       _logger.i('Status update successful');
-    } catch (e, stackTrace) {
-      _logger.e('Error updating user status', error: e, stackTrace: stackTrace);
+    } catch (e) {
+      _logger.e('Error updating user status: ${e.toString()}');
       rethrow;
     }
   }
