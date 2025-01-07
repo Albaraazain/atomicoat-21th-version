@@ -12,9 +12,12 @@ import '../../features/experiments/screens/experiment_list_screen.dart';
 import '../../features/experiments/screens/experiment_details_screen.dart';
 import '../../features/recipes/screens/recipe_creation_screen.dart';
 import '../../core/auth/screens/login_screen.dart';
+import '../../core/auth/screens/account_deletion_screen.dart';
 import '../../features/settings/screens/settings_screen.dart';
 import '../../features/settings/screens/help_support_screen.dart';
 import '../../features/users/screens/user_management_screen.dart';
+import 'package:provider/provider.dart';
+import '../auth/providers/auth_provider.dart';
 
 class RouteConfig {
   // Auth routes
@@ -54,32 +57,103 @@ class RouteConfig {
   // Help route
   static const String helpRoute = '/help';
 
+  // Account management routes
+  static const String accountDeletionRoute = '/account/delete';
+
   static Map<String, Widget Function(BuildContext)> routes = {
     loginRoute: (context) => const LoginScreen(),
     mainDashboardRoute: (context) => const MachineDashboard(),
-    machineListRoute: (context) => const MachineListScreen(),
-    machineCreateRoute: (context) => const MachineCreationScreen(),
+    adminDashboardRoute: (context) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isAdmin && !authProvider.isSuperAdmin) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Access Denied')),
+          body: const Center(
+            child: Text('You do not have permission to access this page'),
+          ),
+        );
+      }
+      return const MachineDashboard();
+    },
+    machineListRoute: (context) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isSuperAdmin) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Machines')),
+          body: const Center(
+            child: Text('Only Super Admins can access the machines management'),
+          ),
+        );
+      }
+      return const MachineListScreen();
+    },
+    machineCreateRoute: (context) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.isSuperAdmin) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('Create Machine')),
+          body: const Center(
+            child: Text('Only Super Admins can create machines'),
+          ),
+        );
+      }
+      return const MachineCreationScreen();
+    },
     processListRoute: (context) => const ProcessListScreen(),
     experimentListRoute: (context) => const ExperimentListScreen(),
     recipeListRoute: (context) => const RecipeListScreen(),
     settingsRoute: (context) => const SettingsScreen(),
     helpRoute: (context) => const HelpSupportScreen(),
-    userManagementRoute: (context) => const UserManagementScreen(),
+    userManagementRoute: (context) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (!authProvider.hasAdminPrivileges) {
+        return Scaffold(
+          appBar: AppBar(title: const Text('User Management')),
+          body: const Center(
+            child: Text('You do not have permission to access this page'),
+          ),
+        );
+      }
+      return const UserManagementScreen();
+    },
+    accountDeletionRoute: (context) => const AccountDeletionScreen(),
   };
 
   static Route<dynamic>? generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case machineDetailsRoute:
         return MaterialPageRoute(
-          builder: (_) => MachineDetailsScreen(
-            machineId: settings.arguments as String,
-          ),
+          builder: (context) {
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            if (!authProvider.isSuperAdmin) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Machine Details')),
+                body: const Center(
+                  child: Text('Only Super Admins can view machine details'),
+                ),
+              );
+            }
+            return MachineDetailsScreen(
+              machineId: settings.arguments as String,
+            );
+          },
         );
       case machineEditRoute:
         return MaterialPageRoute(
-          builder: (_) => MachineEditScreen(
-            machineId: settings.arguments as String,
-          ),
+          builder: (context) {
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            if (!authProvider.isSuperAdmin) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Edit Machine')),
+                body: const Center(
+                  child: Text('Only Super Admins can edit machines'),
+                ),
+              );
+            }
+            return MachineEditScreen(
+              machineId: settings.arguments as String,
+            );
+          },
         );
       case processDetailsRoute:
         return MaterialPageRoute(
