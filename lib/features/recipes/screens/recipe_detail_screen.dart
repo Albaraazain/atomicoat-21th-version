@@ -72,9 +72,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     setState(() {
       _nameController.text = recipe.name;
       _descriptionController.text = recipe.description;
-      _substrateController.text = recipe.substrate;
-      _temperatureController.text =
-          recipe.chamberTemperatureSetPoint.toString();
+      _substrateController.text = recipe.substrate ?? '';
+      _temperatureController.text = recipe.chamberTemperatureSetPoint.toString();
       _pressureController.text = recipe.pressureSetPoint.toString();
       _isPublic = recipe.isPublic;
       _steps = List.from(recipe.steps);
@@ -85,28 +84,56 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final provider = Provider.of<RecipeProvider>(context, listen: false);
+    if (provider.currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in first')),
+      );
+      return;
+    }
+
+    if (provider.currentMachineType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a machine type first')),
+      );
+      return;
+    }
+
+    final now = DateTime.now();
     final recipe = Recipe(
-      id: widget.recipeId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      id: widget.recipeId ?? '', // Empty string for new recipes, DB will generate UUID
       name: _nameController.text,
       description: _descriptionController.text,
       steps: _steps,
       isPublic: _isPublic,
-      createdAt: DateTime.now(),
-      updatedAt: widget.recipeId != null ? DateTime.now() : null,
+      version: 1, // Version starts at 1 for new recipes
       createdBy: provider.currentUserId!,
-      machineId: provider.currentMachineId!,
-      substrate: _substrateController.text,
+      machineType: provider.currentMachineType!,
+      substrate: _substrateController.text.isEmpty ? null : _substrateController.text,
       chamberTemperatureSetPoint: double.parse(_temperatureController.text),
       pressureSetPoint: double.parse(_pressureController.text),
+      createdAt: now,
+      updatedAt: now,
     );
 
-    if (widget.recipeId == null) {
-      await provider.createRecipe(recipe);
-    } else {
-      await provider.updateRecipe(recipe);
-    }
+    try {
+      if (widget.recipeId == null) {
+        await provider.createRecipe(recipe);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recipe created successfully')),
+        );
+      } else {
+        await provider.updateRecipe(recipe);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recipe updated successfully')),
+        );
+      }
 
-    Navigator.of(context).pop(true);
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    }
   }
 
   void _addStep() {
@@ -118,6 +145,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             _steps.add(step);
           });
         },
+        nextSequenceNumber: _steps.length + 1,
       ),
     );
   }
@@ -132,6 +160,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
             _steps[index] = step;
           });
         },
+        nextSequenceNumber: _steps[index].sequenceNumber,
       ),
     );
   }
@@ -353,10 +382,12 @@ Map<String, dynamic> _getDefaultParameters(StepType type) {
 class _StepDialog extends StatefulWidget {
   final RecipeStep? initialStep;
   final Function(RecipeStep) onSave;
+  final int nextSequenceNumber;
 
   const _StepDialog({
     this.initialStep,
     required this.onSave,
+    required this.nextSequenceNumber,
   });
 
   @override
@@ -554,7 +585,7 @@ class __StepDialogState extends State<_StepDialog> {
               description: _descriptionController.text,
               type: _selectedType,
               parameters: Map.from(_parameters),
-              subSteps: _selectedType == StepType.loop ? [] : null,
+              sequenceNumber: widget.initialStep?.sequenceNumber ?? widget.nextSequenceNumber,
             );
             widget.onSave(step);
             Navigator.of(context).pop();
