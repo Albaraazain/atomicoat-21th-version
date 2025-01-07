@@ -123,6 +123,16 @@ class SettingsScreen extends StatelessWidget {
               await authProvider.signOut();
             },
           ),
+          const SizedBox(height: 8),
+          ListTile(
+            leading: const Icon(Icons.delete_forever, color: Colors.red),
+            title: const Text('Delete Account',
+              style: TextStyle(color: Colors.red),
+            ),
+            onTap: () {
+              Navigator.pushNamed(context, '/account/delete');
+            },
+          ),
         ],
       ),
     );
