@@ -48,11 +48,26 @@ class AppDrawer extends StatelessWidget {
                   context, RouteConfig.mainDashboardRoute);
             },
           ),
-          ListTile(
-            leading: Icon(Icons.precision_manufacturing),
-            title: Text('Machines'),
-            onTap: () {
-              Navigator.pushNamed(context, RouteConfig.machineListRoute);
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              _logger.d(
+                'User Role: ${authProvider.userRole}, '
+                'Is Super Admin: ${authProvider.isSuperAdmin}',
+              );
+
+              if (authProvider.isSuperAdmin) {
+                _logger.d('Showing Machines tile');
+                return ListTile(
+                  leading: Icon(Icons.precision_manufacturing),
+                  title: Text('Machines'),
+                  onTap: () {
+                    _logger.d('Navigating to Machines');
+                    Navigator.pushNamed(context, RouteConfig.machineListRoute);
+                  },
+                );
+              }
+              _logger.d('Hiding Machines tile');
+              return SizedBox.shrink();
             },
           ),
           ListTile(
