@@ -58,22 +58,12 @@ class MachineManagementService {
             .single();
 
         String userId;
-        if (existingUser != null) {
-          userId = existingUser['id'];
-          // Update existing user
-          await _supabase
-              .from('users')
-              .update(userData)
-              .eq('id', userId);
-        } else {
-          // Insert new user
-          final userResponse = await _supabase
-              .from('users')
-              .insert(userData)
-              .select()
-              .single();
-          userId = userResponse['id'];
-        }
+        userId = existingUser['id'];
+        // Update existing user
+        await _supabase
+            .from('users')
+            .update(userData)
+            .eq('id', userId);
 
         // Create machine assignment
         final assignmentData = {
@@ -85,13 +75,137 @@ class MachineManagementService {
 
         await _supabase.from('machine_assignments').insert(assignmentData);
 
+        // Create default machine components
+        final components = [
+          {
+            'machine_id': machineResponse['id'],
+            'name': 'Reaction Chamber',
+            'type': 'chamber',
+            'is_activated': true,
+          },
+          {
+            'machine_id': machineResponse['id'],
+            'name': 'Mass Flow Controller',
+            'type': 'mfc',
+            'is_activated': true,
+          },
+          {
+            'machine_id': machineResponse['id'],
+            'name': 'Precursor Line A',
+            'type': 'precursor_line',
+            'is_activated': true,
+          },
+          {
+            'machine_id': machineResponse['id'],
+            'name': 'Precursor Line B',
+            'type': 'precursor_line',
+            'is_activated': true,
+          },
+          {
+            'machine_id': machineResponse['id'],
+            'name': 'Backline Heater',
+            'type': 'heater',
+            'is_activated': true,
+          },
+          {
+            'machine_id': machineResponse['id'],
+            'name': 'Frontline Heater',
+            'type': 'heater',
+            'is_activated': true,
+          },
+        ];
+
+        // Insert all components
+        final componentResponses = await _supabase
+            .from('machine_components')
+            .insert(components)
+            .select();
+
+        // Create default parameters for each component
+        final parameters = [];
+        for (final component in componentResponses) {
+          switch (component['type']) {
+            case 'chamber':
+              parameters.addAll([
+                {
+                  'component_id': component['id'],
+                  'name': 'temperature',
+                  'unit': '°C',
+                  'min_value': 0.0,
+                  'max_value': 400.0,
+                  'current_value': 25.0,
+                  'set_value': 25.0,
+                },
+                {
+                  'component_id': component['id'],
+                  'name': 'pressure',
+                  'unit': 'Torr',
+                  'min_value': 0.0,
+                  'max_value': 760.0,
+                  'current_value': 760.0,
+                  'set_value': 760.0,
+                },
+              ]);
+              break;
+            case 'mfc':
+              parameters.add({
+                'component_id': component['id'],
+                'name': 'flow_rate',
+                'unit': 'sccm',
+                'min_value': 0.0,
+                'max_value': 1000.0,
+                'current_value': 0.0,
+                'set_value': 0.0,
+              });
+              break;
+            case 'precursor_line':
+              parameters.addAll([
+                {
+                  'component_id': component['id'],
+                  'name': 'temperature',
+                  'unit': '°C',
+                  'min_value': 0.0,
+                  'max_value': 200.0,
+                  'current_value': 25.0,
+                  'set_value': 25.0,
+                },
+                {
+                  'component_id': component['id'],
+                  'name': 'valve_state',
+                  'unit': 'boolean',
+                  'min_value': 0.0,
+                  'max_value': 1.0,
+                  'current_value': 0.0,
+                  'set_value': 0.0,
+                },
+              ]);
+              break;
+            case 'heater':
+              parameters.add({
+                'component_id': component['id'],
+                'name': 'temperature',
+                'unit': '°C',
+                'min_value': 0.0,
+                'max_value': 200.0,
+                'current_value': 25.0,
+                'set_value': 25.0,
+              });
+              break;
+          }
+        }
+
+        // Insert all parameters
+        await _supabase
+            .from('component_parameters')
+            .insert(parameters);
+
         // Commit transaction
         await _supabase.rpc('commit_transaction');
         _logger.i('Machine created successfully with ID: ${machineResponse['id']}');
       } catch (e) {
         // Rollback transaction on error
         await _supabase.rpc('rollback_transaction');
-        throw e;
+        rethrow;
       }
     } catch (e, stackTrace) {
       _logger.e('Error creating machine', error: e, stackTrace: stackTrace);
@@ -124,16 +238,7 @@ class MachineManagementService {
           .single();
 
       String userId;
-      if (existingUser != null) {
-        userId = existingUser['id'];
-      } else {
-        final userResponse = await _supabase
-            .from('users')
-            .insert(userData)
-            .select()
-            .single();
-        userId = userResponse['id'];
-      }
+      userId = existingUser['id'];
 
       // Create machine assignment
       final assignmentData = {
@@ -159,7 +264,7 @@ class MachineManagementService {
           .select('*, machines(*)')
           .eq('user_id', userId as Object);
 
-      return response as List<Map<String, dynamic>>;
+      return response;
     } catch (e, stackTrace) {
       _logger.e('Error getting user machine assignments', error: e, stackTrace: stackTrace);
       rethrow;
@@ -174,7 +279,7 @@ class MachineManagementService {
           .select('*, users(*)')
           .eq('machine_id', machineId as Object);
 
-      return response as List<Map<String, dynamic>>;
+      return response;
     } catch (e, stackTrace) {
       _logger.e('Error getting machine assigned users', error: e, stackTrace: stackTrace);
       rethrow;
