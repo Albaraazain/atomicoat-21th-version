@@ -954,9 +954,29 @@ class _MachineDashboardState extends State<MachineDashboard> {
   }
 
   void _handleSessionEnd(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.signOut();
-    Navigator.of(context).pushReplacementNamed('/login');
+    try {
+      // Store the navigator state before the async operation
+      final navigator = Navigator.of(context);
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      await authProvider.signOut();
+
+      // Check if the widget is still mounted before navigating
+      if (mounted) {
+        navigator.pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      _logger.e('Error during session end: ${e.toString()}');
+      // Show error message to user if needed
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error signing out. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildSystemOverviewButton() {
