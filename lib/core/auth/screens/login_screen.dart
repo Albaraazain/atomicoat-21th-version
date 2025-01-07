@@ -36,13 +36,13 @@ class _LoginScreenState extends State<LoginScreen> {
             print('Login successful'); // Debug log
             if (authProvider.isSuperAdmin) {
               print('Logged in as super admin'); // Debug log
-              Navigator.of(context).pushReplacementNamed('/admin_dashboard');
+              Navigator.of(context).pushReplacementNamed('/dashboard');
             } else if (authProvider.isAdmin) {
               print('Logged in as admin'); // Debug log
-              Navigator.of(context).pushReplacementNamed('/admin_dashboard');
+              Navigator.of(context).pushReplacementNamed('/admin');
             } else {
               print('Logged in as regular user'); // Debug log
-              Navigator.of(context).pushReplacementNamed('/home');
+              Navigator.of(context).pushReplacementNamed('/dashboard');
             }
           }
         }
