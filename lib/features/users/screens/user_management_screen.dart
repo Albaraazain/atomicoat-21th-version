@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/auth/providers/auth_provider.dart';
 import '../../../core/auth/enums/user_role.dart';
 import '../../../core/auth/models/user_model.dart';
 import '../providers/user_provider.dart';
 import '../../../core/services/logger_service.dart';
+import '../widgets/user_card_placeholder.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -15,7 +17,10 @@ class UserManagementScreen extends StatefulWidget {
 
 class _UserManagementScreenState extends State<UserManagementScreen> {
   bool _isLoading = false;
+  bool _isRefreshing = false;
   final _logger = LoggerService('UserManagementScreen');
+  final Map<String, bool> _updatingRoles = {};
+  final Map<String, bool> _updatingStatuses = {};
 
   @override
   void initState() {
@@ -27,21 +32,42 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   Future<void> _initializeUserManagement() async {
     final authProvider = context.read<AuthProvider>();
     final userProvider = context.read<UserProvider>();
+    final supabase = context.read<SupabaseClient>();
 
     _logger.d('Initializing user management with role: ${authProvider.userRole}, '
         'isAdmin: ${authProvider.isAdmin}, '
         'isSuperAdmin: ${authProvider.isSuperAdmin}');
 
-    // If machine admin, set their machine serial
+    // If machine admin, get their machine serial from assignments
     if (authProvider.isAdmin && !authProvider.isSuperAdmin) {
-      _logger.d('Setting machine serial for admin: ${authProvider.userModel?.machineSerial}');
-      userProvider.setCurrentMachine(authProvider.userModel?.machineSerial);
+      try {
+        final adminId = authProvider.userId;
+
+        if (adminId != null) {
+          final response = await supabase
+              .from('machine_assignments')
+              .select('machines (serial_number)')
+              .eq('user_id', adminId)
+              .eq('role', 'machineadmin')
+              .single();
+
+          if (response['machines'] != null) {
+            final machineSerial = response['machines']['serial_number'] as String;
+            _logger.d('Setting machine serial for admin: $machineSerial');
+            userProvider.setCurrentMachine(machineSerial);
+          }
+        }
+      } catch (e) {
+        _logger.e('Error getting admin machine assignment: $e');
+      }
     }
 
     await _loadUsers();
   }
 
   Future<void> _loadUsers() async {
+    if (_isRefreshing) return;
+
     setState(() => _isLoading = true);
     try {
       final authProvider = context.read<AuthProvider>();
@@ -61,12 +87,45 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       }
     } catch (e) {
       _logger.e('Error loading users: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading users: ${e.toString()}')),
+        );
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _refreshUsers() async {
+    if (_isLoading) return;
+
+    setState(() => _isRefreshing = true);
+    try {
+      final authProvider = context.read<AuthProvider>();
+      final userProvider = context.read<UserProvider>();
+
+      await userProvider.loadUsers(isSuperAdmin: authProvider.isSuperAdmin);
+    } catch (e) {
+      _logger.e('Error refreshing users: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error refreshing users: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
     }
   }
 
   Future<void> _updateUserRole(String userId, UserRole newRole) async {
+    if (_updatingRoles[userId] == true) return;
+
+    setState(() => _updatingRoles[userId] = true);
     try {
       final authProvider = context.read<AuthProvider>();
       final userProvider = context.read<UserProvider>();
@@ -78,18 +137,29 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         isSuperAdmin: authProvider.isSuperAdmin,
       );
       _logger.d('User role updated successfully');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User role updated successfully')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User role updated successfully')),
+        );
+      }
     } catch (e) {
       _logger.e('Failed to update user role: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update user role: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update user role: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _updatingRoles[userId] = false);
+      }
     }
   }
 
   Future<void> _updateUserStatus(String userId, String newStatus) async {
+    if (_updatingStatuses[userId] == true) return;
+
+    setState(() => _updatingStatuses[userId] = true);
     try {
       final authProvider = context.read<AuthProvider>();
       final userProvider = context.read<UserProvider>();
@@ -101,14 +171,22 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         isSuperAdmin: authProvider.isSuperAdmin,
       );
       _logger.d('User status updated successfully');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('User status updated successfully')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('User status updated successfully')),
+        );
+      }
     } catch (e) {
       _logger.e('Failed to update user status: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update user status: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update user status: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _updatingStatuses[userId] = false);
+      }
     }
   }
 
@@ -136,27 +214,43 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadUsers,
+            onPressed: _isLoading ? null : _loadUsers,
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Consumer<UserProvider>(
-              builder: (context, userProvider, child) {
-                if (userProvider.users.isEmpty) {
-                  return const Center(child: Text('No users found'));
-                }
+      body: _buildUserList(),
+    );
+  }
 
-                return ListView.builder(
-                  itemCount: userProvider.users.length,
-                  itemBuilder: (context, index) {
-                    final user = userProvider.users[index];
-                    return _buildUserCard(user);
-                  },
-                );
+  Widget _buildUserList() {
+    if (_isLoading) {
+      return ListView.builder(
+        itemCount: 3,
+        itemBuilder: (context, index) => const UserCardPlaceholder(),
+      );
+    }
+
+    return Consumer<UserProvider>(
+      builder: (context, userProvider, child) {
+        if (userProvider.users.isEmpty) {
+          return const Center(child: Text('No users found'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: _refreshUsers,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: ListView.builder(
+              key: ValueKey(_isRefreshing),
+              itemCount: userProvider.users.length,
+              itemBuilder: (context, index) {
+                final user = userProvider.users[index];
+                return _buildUserCard(user);
               },
             ),
+          ),
+        );
+      },
     );
   }
 
@@ -222,8 +316,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildRoleDropdown(user, availableRoles),
-                _buildStatusButton(user),
+                Expanded(
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      _buildRoleDropdown(user, availableRoles),
+                      if (_updatingRoles[user.uid] == true)
+                        const CircularProgressIndicator(),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    _buildStatusButton(user),
+                    if (_updatingStatuses[user.uid] == true)
+                      const CircularProgressIndicator(),
+                  ],
+                ),
               ],
             ),
           ],
