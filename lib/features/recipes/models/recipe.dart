@@ -6,118 +6,120 @@ enum StepType {
 }
 
 class RecipeStep {
-  final String id;
+  final String? id;
   final String name;
   final String description;
   final Map<String, dynamic> parameters;
   final StepType type;
-  final List<RecipeStep>? subSteps;
+  final int sequenceNumber;
+  final String? parentStepId;
 
   RecipeStep({
-    required this.id,
+    this.id,
     required this.name,
     required this.description,
     required this.parameters,
     required this.type,
-    this.subSteps,
+    required this.sequenceNumber,
+    this.parentStepId,
   });
 
   factory RecipeStep.fromJson(Map<String, dynamic> json) {
     return RecipeStep(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
-      parameters: json['parameters'],
+      id: json['id'] as String?,
+      name: json['name'] as String,
+      description: (json['description'] ?? '') as String,
+      parameters: (json['parameters'] ?? {}) as Map<String, dynamic>,
       type: StepType.values.firstWhere(
         (e) => e.toString() == 'StepType.${json['type']}',
         orElse: () => StepType.setParameter,
       ),
-      subSteps: json['sub_steps'] != null
-          ? (json['sub_steps'] as List)
-              .map((step) => RecipeStep.fromJson(step))
-              .toList()
-          : null,
+      sequenceNumber: (json['sequence_number'] ?? 0) as int,
+      parentStepId: json['parent_step_id'] as String?,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final json = {
       'name': name,
       'description': description,
       'parameters': parameters,
       'type': type.toString().split('.').last,
-      'sub_steps': subSteps?.map((step) => step.toJson()).toList(),
-    };
+      'sequence_number': sequenceNumber,
+    } as Map<String, dynamic>;
+    if (id != null) json['id'] = id as Object;
+    if (parentStepId != null) json['parent_step_id'] = parentStepId as Object;
+    return json;
   }
 }
 
 class Recipe {
-  final String id;
+  final String? id;
   final String name;
   final String description;
   final List<RecipeStep> steps;
   final bool isPublic;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
+  final int version;
   final String createdBy;
-  final String machineId;
-  final String substrate;
+  final String machineType;
+  final String? substrate;
   final double chamberTemperatureSetPoint;
   final double pressureSetPoint;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Recipe({
-    required this.id,
+    this.id,
     required this.name,
     required this.description,
     required this.steps,
     this.isPublic = false,
-    required this.createdAt,
-    this.updatedAt,
+    this.version = 1,
     required this.createdBy,
-    required this.machineId,
-    required this.substrate,
+    required this.machineType,
+    this.substrate,
     required this.chamberTemperatureSetPoint,
     required this.pressureSetPoint,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
       id: json['id'],
       name: json['name'],
-      description: json['description'],
-      steps: (json['steps'] as List)
+      description: json['description'] ?? '',
+      steps: (json['recipe_steps'] as List? ?? [])
           .map((step) => RecipeStep.fromJson(step))
           .toList(),
       isPublic: json['is_public'] ?? false,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
+      version: json['version'] ?? 1,
       createdBy: json['created_by'],
-      machineId: json['machine_id'],
+      machineType: json['machine_type'],
       substrate: json['substrate'],
-      chamberTemperatureSetPoint:
-          json['chamber_temperature_set_point'].toDouble(),
+      chamberTemperatureSetPoint: json['chamber_temperature_set_point'].toDouble(),
       pressureSetPoint: json['pressure_set_point'].toDouble(),
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at'] ?? json['created_at']),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final json = {
       'name': name,
       'description': description,
-      'steps': steps.map((step) => step.toJson()).toList(),
       'is_public': isPublic,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
+      'version': version,
       'created_by': createdBy,
-      'machine_id': machineId,
+      'machine_type': machineType,
       'substrate': substrate,
       'chamber_temperature_set_point': chamberTemperatureSetPoint,
       'pressure_set_point': pressureSetPoint,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
+    if (id != null) json['id'] = id;
+    return json;
   }
 
   Recipe copyWith({
@@ -126,13 +128,14 @@ class Recipe {
     String? description,
     List<RecipeStep>? steps,
     bool? isPublic,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    int? version,
     String? createdBy,
-    String? machineId,
+    String? machineType,
     String? substrate,
     double? chamberTemperatureSetPoint,
     double? pressureSetPoint,
+    DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return Recipe(
       id: id ?? this.id,
@@ -140,29 +143,24 @@ class Recipe {
       description: description ?? this.description,
       steps: steps ?? this.steps,
       isPublic: isPublic ?? this.isPublic,
+      version: version ?? this.version,
+      createdBy: createdBy ?? this.createdBy,
+      machineType: machineType ?? this.machineType,
+      substrate: substrate ?? this.substrate,
+      chamberTemperatureSetPoint: chamberTemperatureSetPoint ?? this.chamberTemperatureSetPoint,
+      pressureSetPoint: pressureSetPoint ?? this.pressureSetPoint,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      machineId: machineId ?? this.machineId,
-      substrate: substrate ?? this.substrate,
-      chamberTemperatureSetPoint:
-          chamberTemperatureSetPoint ?? this.chamberTemperatureSetPoint,
-      pressureSetPoint: pressureSetPoint ?? this.pressureSetPoint,
     );
   }
 
-  factory Recipe.mock() {
+  // Mock recipe for testing purposes
+  static Recipe getMockRecipe() {
+    final now = DateTime.now();
     return Recipe(
-      id: 'recipe_1',
+      id: 'mock_recipe_1',
       name: 'Standard ALD Process',
       description: 'Basic ALD process for thin film deposition',
-      createdBy: 'operator_1',
-      machineId: 'machine_1',
-      substrate: 'Silicon Wafer',
-      chamberTemperatureSetPoint: 200.0,
-      pressureSetPoint: 1.0,
-      createdAt: DateTime.now().subtract(const Duration(days: 30)),
-      updatedAt: DateTime.now(),
       steps: [
         RecipeStep(
           id: 'step_1',
@@ -170,25 +168,44 @@ class Recipe {
           description: 'Introduce precursor A into chamber',
           type: StepType.valve,
           parameters: {
-            'duration': 0.5,
-            'temperature': 200.0,
-            'pressure': 1.0,
+            'valve_number': '1',
+            'duration': 1.0,
+            'flow_rate': 100.0,
           },
-          subSteps: [],
+          sequenceNumber: 1,
         ),
         RecipeStep(
           id: 'step_2',
-          name: 'Purge',
+          name: 'Purge Step',
           description: 'Clear chamber of precursor A',
           type: StepType.purge,
           parameters: {
-            'duration': 2.0,
-            'flowRate': 100.0,
+            'duration': 5.0,
+            'flow_rate': 200.0,
           },
-          subSteps: [],
+          sequenceNumber: 2,
+        ),
+        RecipeStep(
+          id: 'step_3',
+          name: 'Temperature Ramp',
+          description: 'Ramp up chamber temperature',
+          type: StepType.setParameter,
+          parameters: {
+            'parameter': 'temperature',
+            'value': 250.0,
+          },
+          sequenceNumber: 3,
         ),
       ],
       isPublic: true,
+      version: 1,
+      createdBy: 'mock_operator_1',
+      machineType: 'thermal_ald',
+      substrate: 'Silicon Wafer',
+      chamberTemperatureSetPoint: 200.0,
+      pressureSetPoint: 1.0,
+      createdAt: now.subtract(const Duration(days: 1)),
+      updatedAt: now.subtract(const Duration(days: 1)),
     );
   }
 }
