@@ -9,7 +9,7 @@ class ProcessProvider with ChangeNotifier {
       ProcessExecution(
         id: 'process_1',
         machineId: 'machine_1',
-        recipe: Recipe.mock(),
+        recipe: Recipe.getMockRecipe(),
         startTime: DateTime.now().subtract(const Duration(hours: 2)),
         endTime: DateTime.now().subtract(const Duration(hours: 1)),
         operatorId: 'operator_1',
@@ -25,7 +25,11 @@ class ProcessProvider with ChangeNotifier {
       ProcessExecution(
         id: 'process_2',
         machineId: 'machine_1',
-        recipe: Recipe.mock(),
+        recipe: Recipe.getMockRecipe().copyWith(
+          id: 'mock_recipe_2',
+          name: 'Modified ALD Process',
+          chamberTemperatureSetPoint: 225.0,
+        ),
         startTime: DateTime.now().subtract(const Duration(minutes: 30)),
         operatorId: 'operator_1',
         status: ProcessStatus.running,
@@ -40,7 +44,12 @@ class ProcessProvider with ChangeNotifier {
       ProcessExecution(
         id: 'process_3',
         machineId: 'machine_2',
-        recipe: Recipe.mock(),
+        recipe: Recipe.getMockRecipe().copyWith(
+          id: 'mock_recipe_3',
+          name: 'High Temperature ALD Process',
+          chamberTemperatureSetPoint: 300.0,
+          pressureSetPoint: 0.8,
+        ),
         startTime: DateTime.now().subtract(const Duration(hours: 3)),
         endTime: DateTime.now().subtract(const Duration(hours: 2, minutes: 30)),
         operatorId: 'operator_2',

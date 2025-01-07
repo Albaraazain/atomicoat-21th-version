@@ -12,7 +12,7 @@ class ExperimentProvider with ChangeNotifier {
       Experiment(
         id: 'exp_1',
         machineId: 'machine_1',
-        recipe: Recipe.mock(),
+        recipe: Recipe.getMockRecipe(),
         startTime: DateTime.now().subtract(const Duration(days: 1)),
         endTime: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
         operatorId: 'operator_1',
@@ -54,7 +54,11 @@ class ExperimentProvider with ChangeNotifier {
       Experiment(
         id: 'exp_2',
         machineId: 'machine_1',
-        recipe: Recipe.mock(),
+        recipe: Recipe.getMockRecipe().copyWith(
+          id: 'mock_recipe_2',
+          name: 'Modified ALD Process',
+          chamberTemperatureSetPoint: 225.0,
+        ),
         startTime: DateTime.now().subtract(const Duration(days: 2)),
         endTime: DateTime.now().subtract(const Duration(days: 2, hours: 1)),
         operatorId: 'operator_2',
