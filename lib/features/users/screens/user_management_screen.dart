@@ -34,35 +34,68 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     final userProvider = context.read<UserProvider>();
     final supabase = context.read<SupabaseClient>();
 
-    _logger.d('Initializing user management with role: ${authProvider.userRole}, '
-        'isAdmin: ${authProvider.isAdmin}, '
-        'isSuperAdmin: ${authProvider.isSuperAdmin}');
+    _logger
+        .d('Initializing user management with role: ${authProvider.userRole}, '
+            'isAdmin: ${authProvider.isAdmin}, '
+            'isSuperAdmin: ${authProvider.isSuperAdmin}');
 
-    // If machine admin, get their machine serial from assignments
-    if (authProvider.isAdmin && !authProvider.isSuperAdmin) {
-      try {
-        final adminId = authProvider.userId;
+    setState(() => _isLoading = true);
+    try {
+      // Set current user in provider
+      if (authProvider.userId != null && authProvider.userRole != null) {
+        userProvider.setCurrentUser(
+          authProvider.userId!,
+          authProvider.userRole!,
+        );
+      } else {
+        throw Exception('User not properly authenticated');
+      }
 
-        if (adminId != null) {
-          final response = await supabase
-              .from('machine_assignments')
-              .select('machines (serial_number)')
-              .eq('user_id', adminId)
-              .eq('role', 'machineadmin')
-              .single();
+      // If machine admin, get their machine serial from assignments
+      if (authProvider.isAdmin && !authProvider.isSuperAdmin) {
+        try {
+          final adminId = authProvider.userId;
 
-          if (response['machines'] != null) {
-            final machineSerial = response['machines']['serial_number'] as String;
-            _logger.d('Setting machine serial for admin: $machineSerial');
-            userProvider.setCurrentMachine(machineSerial);
+          if (adminId != null) {
+            final response = await supabase
+                .from('machine_assignments')
+                .select('machines (serial_number)')
+                .eq('user_id', adminId)
+                .eq('role', 'machineadmin')
+                .single();
+
+            if (response['machines'] != null) {
+              final machineSerial =
+                  response['machines']['serial_number'] as String;
+              _logger.d('Setting machine serial for admin: $machineSerial');
+              userProvider.setCurrentMachine(machineSerial);
+            }
           }
+        } catch (e) {
+          _logger.e('Error getting admin machine assignment: $e');
         }
-      } catch (e) {
-        _logger.e('Error getting admin machine assignment: $e');
+      }
+
+      // Load users based on admin type
+      if (authProvider.hasAdminPrivileges) {
+        _logger.d('Loading users as admin');
+        await userProvider.loadUsers(isSuperAdmin: authProvider.isSuperAdmin);
+        _logger.d('Users loaded: ${userProvider.users.length} users found');
+      } else {
+        _logger.w('User does not have admin privileges to load users');
+      }
+    } catch (e) {
+      _logger.e('Error loading users: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading users: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-
-    await _loadUsers();
   }
 
   Future<void> _loadUsers() async {
@@ -146,7 +179,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _logger.e('Failed to update user role: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update user role: ${e.toString()}')),
+          SnackBar(
+              content: Text('Failed to update user role: ${e.toString()}')),
         );
       }
     } finally {
@@ -180,7 +214,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       _logger.e('Failed to update user status: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update user status: ${e.toString()}')),
+          SnackBar(
+              content: Text('Failed to update user status: ${e.toString()}')),
         );
       }
     } finally {
@@ -369,10 +404,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 
   Widget _buildRoleDropdown(UserModel user, List<UserRole> availableRoles) {
-    _logger.d('[_buildRoleDropdown] Current user role: ${user.role}, Available roles: $availableRoles');
+    _logger.d(
+        '[_buildRoleDropdown] Current user role: ${user.role}, Available roles: $availableRoles');
 
-    // If the user is a superadmin, don't show the dropdown
-    if (user.role?.toString() == 'superadmin') {
+    // If the user is a superadmin or another machine admin, don't show the dropdown
+    if (user.role?.toString() == 'superadmin' ||
+        (user.role?.toString() == 'machineadmin' &&
+            !context.read<AuthProvider>().isSuperAdmin)) {
       return Text(
         'Role: ${user.role}',
         style: TextStyle(color: Colors.grey[600]),
@@ -381,7 +419,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
     // Ensure the current role is in the available roles
     if (user.role != null && !availableRoles.contains(user.role)) {
-      _logger.w('[_buildRoleDropdown] User role ${user.role} not in available roles: $availableRoles');
+      _logger.w(
+          '[_buildRoleDropdown] User role ${user.role} not in available roles: $availableRoles');
       return Text(
         'Role: ${user.role}',
         style: TextStyle(color: Colors.grey[600]),
