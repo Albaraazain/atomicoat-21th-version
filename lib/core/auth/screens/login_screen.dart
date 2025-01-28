@@ -77,12 +77,22 @@ class _LoginScreenState extends State<LoginScreen> {
         labelText: label,
         labelStyle: TextStyle(color: Colors.white70),
         prefixIcon: Icon(icon, color: Colors.white70),
+        filled: true,
+        fillColor: Color(0xFF2C2C2C),
         enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white38),
+          borderSide: BorderSide(color: Colors.transparent),
           borderRadius: BorderRadius.circular(12),
         ),
         focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white70),
+          borderSide: BorderSide(color: Colors.white24),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.redAccent.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.redAccent),
           borderRadius: BorderRadius.circular(12),
         ),
         suffixIcon: isPassword
@@ -110,16 +120,22 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: Colors.black87,
-      appBar: AppBar(title: Text('Login')),
+      backgroundColor: Color(0xFF121212),
+      appBar: AppBar(
+        title: Text('Login'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24.0),
           child: Card(
-            color: Colors.grey[850],
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 10,
+            color: Color(0xFF1E1E1E),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: Color(0xFF2C2C2C), width: 1),
+            ),
+            elevation: 0,
             child: Padding(
               padding: EdgeInsets.all(24.0),
               child: Form(
@@ -129,8 +145,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     Text(
                       'Welcome Back',
-                      style: theme.textTheme.headlineSmall
-                          ?.copyWith(color: Colors.white),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     SizedBox(height: 24),
                     _buildTextFormField(
@@ -167,17 +185,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blueAccent,
+                          backgroundColor: Color(0xFF2C2C2C),
+                          foregroundColor: Colors.white,
                           padding: EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 0,
                         ),
                         child: _isLoading
                             ? CircularProgressIndicator(color: Colors.white)
                             : Text(
                                 'Login',
-                                style: TextStyle(fontSize: 16),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                       ),
                     ),
@@ -192,7 +215,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       child: Text(
                         'Don\'t have an account? Register',
-                        style: TextStyle(color: Colors.white70),
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
                       ),
                     ),
                   ],
