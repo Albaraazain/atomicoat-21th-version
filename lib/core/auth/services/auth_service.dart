@@ -1,14 +1,22 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../enums/user_role.dart';
 import '../../../core/services/logger_service.dart';
+import '../../../core/config/env.dart';
 
 class AuthService {
   final SupabaseClient _supabase;
+  late final SupabaseClient _adminClient;
   final LoggerService _logger;
 
   bool _initialized = false;
 
-  AuthService(this._supabase) : _logger = LoggerService('AuthService');
+  AuthService(this._supabase) : _logger = LoggerService('AuthService') {
+    // Initialize admin client with service role key
+    _adminClient = SupabaseClient(
+      Env.supabaseUrl,
+      Env.supabaseServiceRole,
+    );
+  }
 
   // Current user getter
   User? get currentUser => _supabase.auth.currentUser;
@@ -100,7 +108,8 @@ class AuthService {
           .maybeSingle();
 
       // If user exists but is pending registration, allow sign up
-      if (existingUser != null && existingUser['status'] != 'pending_registration') {
+      if (existingUser != null &&
+          existingUser['status'] != 'pending_registration') {
         throw Exception('User already exists');
       }
 
@@ -196,9 +205,11 @@ class AuthService {
 
           return _parseUserRole(roleStr);
         } catch (e) {
-          if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
+          if (e.toString().contains('SocketException') ||
+              e.toString().contains('Failed host lookup')) {
             if (attempt < 3) {
-              _logger.w('Network error on attempt $attempt, retrying in 2 seconds...');
+              _logger.w(
+                  'Network error on attempt $attempt, retrying in 2 seconds...');
               await Future.delayed(Duration(seconds: 2));
               continue;
             }
@@ -241,9 +252,11 @@ class AuthService {
 
           return status;
         } catch (e) {
-          if (e.toString().contains('SocketException') || e.toString().contains('Failed host lookup')) {
+          if (e.toString().contains('SocketException') ||
+              e.toString().contains('Failed host lookup')) {
             if (attempt < 3) {
-              _logger.w('Network error on attempt $attempt, retrying in 2 seconds...');
+              _logger.w(
+                  'Network error on attempt $attempt, retrying in 2 seconds...');
               await Future.delayed(Duration(seconds: 2));
               continue;
             }
@@ -311,13 +324,22 @@ class AuthService {
         throw Exception('No user logged in');
       }
 
-      // Delete user data from users table first
+      // Store the user ID for deletion
+      final userId = user.id;
+
+      // Sign out the user first
+      await signOut();
+      _logger.i('User signed out');
+
+      // Delete user data from users table
       // This will automatically cascade to delete related records
-      await _supabase.from('users').delete().eq('id', user.id);
+      await _supabase.from('users').delete().eq('id', userId);
       _logger.i('Deleted user and related data');
 
-      // Sign out the user
-      await signOut();
+      // Delete the auth record using admin client
+      await _adminClient.auth.admin.deleteUser(userId);
+      _logger.i('Deleted auth record');
+
       _logger.i('Account deleted successfully');
     } catch (e) {
       _logger.e('Account deletion error: ${e.toString()}');
@@ -392,13 +414,15 @@ class AuthService {
               'created_at': DateTime.now().toIso8601String(),
               'updated_at': DateTime.now().toIso8601String(),
             });
-            _logger.i('Created machine assignment for user ${user.id} to machine ${machine['id']}');
+            _logger.i(
+                'Created machine assignment for user ${user.id} to machine ${machine['id']}');
           } else {
             _logger.i('Machine assignment already exists for user ${user.id}');
           }
-                } catch (e) {
+        } catch (e) {
           _logger.e('Error creating machine assignment: ${e.toString()}');
-          throw Exception('Failed to create machine assignment: ${e.toString()}');
+          throw Exception(
+              'Failed to create machine assignment: ${e.toString()}');
         }
       }
 
