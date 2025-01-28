@@ -71,9 +71,9 @@ class _ComponentsOverlayState extends State<ComponentsOverlay> {
         height: 60,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.blue.withOpacity(0.2),
+          color: Color(0xFF4A4A4A).withOpacity(0.2),
           border: Border.all(
-            color: Colors.blue,
+            color: Color(0xFF4A4A4A),
             width: 2,
           ),
         ),
