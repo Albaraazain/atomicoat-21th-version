@@ -81,7 +81,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     Icon(
                       Icons.lock_reset,
                       size: 64,
-                      color: Colors.blue,
+                      color: Color(0xFF2C2C2C),
                     ),
                     SizedBox(height: 24),
                     Text(
