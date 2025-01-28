@@ -1,11 +1,13 @@
 // lib/providers/auth_provider.dart
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../../../core/services/logger_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../enums/user_role.dart';
 import '../models/user_model.dart';
+import '../../../main.dart'; // for navigatorKey
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService;
@@ -184,6 +186,13 @@ class AuthProvider with ChangeNotifier {
       _clearUserData();
 
       _logger.i('User signed out successfully');
+
+      // Navigate to login screen
+      final context = navigatorKey.currentContext;
+      if (context != null) {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/login', (route) => false);
+      }
     } catch (e, stackTrace) {
       _handleError('Sign out failed', e, stackTrace);
     } finally {
