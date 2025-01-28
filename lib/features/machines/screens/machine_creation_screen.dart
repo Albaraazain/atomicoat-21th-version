@@ -253,7 +253,7 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _handleSubmit,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
+          backgroundColor: Color(0xFF2C2C2C),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
@@ -296,8 +296,7 @@ class _MachineCreationScreenState extends State<MachineCreationScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  'Machine created successfully. Admin credentials:\nEmail: ${response['admin_email']}\nPassword: ${response['admin_password']}'
-                ),
+                    'Machine created successfully. Admin credentials:\nEmail: ${response['admin_email']}\nPassword: ${response['admin_password']}'),
                 duration: Duration(seconds: 10),
                 action: SnackBarAction(
                   label: 'Dismiss',
