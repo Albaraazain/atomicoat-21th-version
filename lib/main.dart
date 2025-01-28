@@ -36,7 +36,8 @@ void main() async {
 
       // Set up error handling for Flutter errors
       FlutterError.onError = (FlutterErrorDetails details) {
-        logger.e('Flutter error: ${details.exception}', error: details.exception, stackTrace: details.stack);
+        logger.e('Flutter error: ${details.exception}',
+            error: details.exception, stackTrace: details.stack);
       };
 
       logger.i('Attempting to initialize Supabase...');
@@ -47,7 +48,8 @@ void main() async {
         );
         logger.i('Supabase initialized successfully');
       } catch (e, stackTrace) {
-        logger.e('Failed to initialize Supabase', error: e, stackTrace: stackTrace);
+        logger.e('Failed to initialize Supabase',
+            error: e, stackTrace: stackTrace);
         runApp(
           MaterialApp(
             home: Scaffold(
@@ -61,7 +63,8 @@ void main() async {
                       SizedBox(height: 16),
                       Text(
                         'Initialization Error',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 8),
                       Text(
@@ -146,7 +149,8 @@ void main() async {
                     SizedBox(height: 16),
                     Text(
                       'Fatal Error',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     SizedBox(height: 8),
                     Text(
@@ -227,8 +231,38 @@ class MyApp extends StatelessWidget {
 
   Widget _buildLoadingScreen() {
     return Scaffold(
+      backgroundColor: Color(0xFF1A1A1A),
       body: Center(
-        child: CircularProgressIndicator(),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              'assets/atomicoat_app_icon.png',
+              width: 120,
+              height: 120,
+            ),
+            SizedBox(height: 32),
+            Text(
+              'AtomiCoat',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            SizedBox(height: 24),
+            Container(
+              width: 48,
+              height: 48,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                    ThemeConfig.teslaTheme.primaryColor),
+                strokeWidth: 3,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
