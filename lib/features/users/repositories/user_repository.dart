@@ -9,10 +9,16 @@ class UserRepository {
 
   UserRepository(this._supabase) : _logger = LoggerService('UserRepository');
 
-  Future<List<UserModel>> getUsers({String? machineSerial}) async {
+  Future<List<UserModel>> getUsers({
+    String? machineSerial,
+    required String currentUserId,
+    required UserRole currentUserRole,
+  }) async {
     try {
-      _logger.i('Fetching users from database${machineSerial != null ? ' for machine $machineSerial' : ''}');
+      _logger.i(
+          'Fetching users - Current user role: ${currentUserRole.toString()}, Machine serial: ${machineSerial ?? 'all'}');
 
+      // Base query to get users with their machine assignments
       var query = _supabase.from('users').select('''
         *,
         machine_assignments!inner (
@@ -20,17 +26,44 @@ class UserRepository {
           role,
           status,
           machines!inner (
-            serial_number
+            serial_number,
+            admin_id
           )
         )
       ''');
 
-      // If machineSerial is provided, filter users for that machine
-      if (machineSerial != null) {
-        query = query.eq('machine_assignments.machines.serial_number', machineSerial);
+      // If user is a machine admin, only show users from their machines
+      if (currentUserRole == UserRole.machineadmin) {
+        _logger.d('Filtering users for machine admin with ID: $currentUserId');
+
+        // Get the machines this admin manages
+        final adminMachines = await _supabase
+            .from('machine_assignments')
+            .select('machine_id')
+            .eq('user_id', currentUserId)
+            .eq('role', 'machineadmin');
+
+        final machineIds =
+            (adminMachines as List).map((m) => m['machine_id']).toList();
+        _logger.d('Admin manages machines with IDs: $machineIds');
+
+        // Filter users who are assigned to these machines
+        if (machineIds.isNotEmpty) {
+          query = query.inFilter('machine_assignments.machine_id', machineIds);
+        } else {
+          _logger.w('No machines found for admin, returning empty list');
+          return [];
+        }
+      }
+      // For specific machine view (applies to both super admin and machine admin)
+      else if (machineSerial != null) {
+        _logger.d('Filtering users for specific machine: $machineSerial');
+        query = query.eq(
+            'machine_assignments.machines.serial_number', machineSerial);
       }
 
       final response = await query.order('created_at', ascending: false);
+      _logger.d('Retrieved ${response.length} users from database');
 
       return (response as List).map((userData) {
         String? roleStr = userData['role'] as String?;
@@ -41,10 +74,11 @@ class UserRepository {
         if (userData['machine_assignments'] != null &&
             (userData['machine_assignments'] as List).isNotEmpty &&
             userData['machine_assignments'][0]['machines'] != null) {
-          assignedMachineSerial = userData['machine_assignments'][0]['machines']['serial_number'] as String?;
+          assignedMachineSerial = userData['machine_assignments'][0]['machines']
+              ['serial_number'] as String?;
         }
 
-        return UserModel(
+        var user = UserModel(
           uid: userData['id'] as String,
           email: userData['email'] as String,
           name: userData['name'] as String?,
@@ -52,14 +86,18 @@ class UserRepository {
           status: userData['status'] as String?,
           machineSerial: assignedMachineSerial,
         );
+
+        _logger.d('Mapped user: ${user.email} with role: ${user.role}');
+        return user;
       }).toList();
     } catch (e) {
-      _logger.e('Error fetching users: ${e.toString()}');
+      _logger.e('Error fetching users: ${e.toString()}', error: e);
       rethrow;
     }
   }
 
-  Future<void> updateUserRole(String userId, UserRole role, {String? machineSerial}) async {
+  Future<void> updateUserRole(String userId, UserRole role,
+      {String? machineSerial}) async {
     try {
       _logger.i('Updating role for user $userId to: ${role.toString()}');
 
@@ -83,13 +121,10 @@ class UserRepository {
         }
       }
 
-      await _supabase
-          .from('users')
-          .update({
-            'role': role.toString(),
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', userId);
+      await _supabase.from('users').update({
+        'role': role.toString(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
 
       // Update machine assignment role if it exists
       if (machineSerial != null) {
@@ -116,7 +151,8 @@ class UserRepository {
     }
   }
 
-  Future<void> updateUserStatus(String userId, String status, {String? machineSerial}) async {
+  Future<void> updateUserStatus(String userId, String status,
+      {String? machineSerial}) async {
     try {
       _logger.i('Updating status for user $userId to: $status');
 
@@ -140,13 +176,10 @@ class UserRepository {
         }
       }
 
-      await _supabase
-          .from('users')
-          .update({
-            'status': status,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', userId);
+      await _supabase.from('users').update({
+        'status': status,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', userId);
 
       // Update machine assignment status if it exists
       if (machineSerial != null) {
