@@ -1,23 +1,26 @@
--- First, drop existing foreign key constraints
-ALTER TABLE recipe_steps DROP CONSTRAINT IF EXISTS recipe_steps_recipe_id_fkey;
-ALTER TABLE recipes DROP CONSTRAINT IF EXISTS recipes_created_by_fkey;
-ALTER TABLE machine_assignments DROP CONSTRAINT IF EXISTS machine_assignments_user_id_fkey;
+-- Create recipes table if it doesn't exist
+CREATE TABLE IF NOT EXISTS recipes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    description TEXT,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Recreate the constraints with CASCADE
-ALTER TABLE recipe_steps
-  ADD CONSTRAINT recipe_steps_recipe_id_fkey
-  FOREIGN KEY (recipe_id)
-  REFERENCES recipes(id)
-  ON DELETE CASCADE;
-
-ALTER TABLE recipes
-  ADD CONSTRAINT recipes_created_by_fkey
-  FOREIGN KEY (created_by)
-  REFERENCES users(id)
-  ON DELETE CASCADE;
-
-ALTER TABLE machine_assignments
-  ADD CONSTRAINT machine_assignments_user_id_fkey
-  FOREIGN KEY (user_id)
-  REFERENCES users(id)
-  ON DELETE CASCADE;
+-- Create recipe_steps table if it doesn't exist
+CREATE TABLE IF NOT EXISTS recipe_steps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipe_id UUID NOT NULL,
+    step_number INTEGER NOT NULL,
+    description TEXT NOT NULL,
+    duration INTEGER,
+    temperature DECIMAL,
+    pressure DECIMAL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT recipe_steps_recipe_id_fkey
+    FOREIGN KEY (recipe_id)
+    REFERENCES recipes(id)
+    ON DELETE CASCADE
+);
