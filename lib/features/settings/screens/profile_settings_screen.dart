@@ -37,7 +37,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile Settings'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -90,7 +89,6 @@ class _ProfileSettingsScreenState extends State<ProfileSettingsScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConfig.teslaTheme.primaryColor,
                 minimumSize: const Size(double.infinity, 50),
               ),
               child: const Text('Save Changes'),
