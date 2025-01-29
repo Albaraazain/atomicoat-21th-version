@@ -3,10 +3,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:logger/logger.dart';
+import 'package:intl/intl.dart';
+import 'dart:async';
 import '../../../core/auth/providers/auth_provider.dart';
 import '../../../features/components/providers/component_provider.dart';
 import '../../../widgets/app_drawer.dart';
 import 'system_overview_screen.dart';
+import '../../../core/widgets/theme_toggle_button.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../../core/config/route_config.dart';
 
 class MachineDashboard extends StatefulWidget {
   const MachineDashboard({super.key});
@@ -18,6 +23,8 @@ class MachineDashboard extends StatefulWidget {
 class _MachineDashboardState extends State<MachineDashboard> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _logger = Logger();
+  late DateTime _currentTime;
+  late Timer _timer;
 
   final List<_DashboardTab> _tabs = [
     _DashboardTab(Icons.dashboard_rounded, 'Overview'),
@@ -26,373 +33,394 @@ class _MachineDashboardState extends State<MachineDashboard> {
     _DashboardTab(Icons.build_rounded, 'Maintenance'),
   ];
 
-  int _selectedTabIndex = 0;
   OverlayType _currentOverlayType = OverlayType.componentControl;
 
   @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(Duration(minutes: 1), (timer) {
+      setState(() {
+        _currentTime = DateTime.now();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Color(0xFF1A1A1A),
-      appBar: _buildAppBar(),
+      backgroundColor: Colors.white,
       drawer: AppDrawer(),
-      body: MultiProvider(
-        providers: [
-          ChangeNotifierProvider(create: (_) => ComponentProvider()),
-        ],
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildTabBar(),
-              _buildOperatorSession(),
-              Expanded(
-                child: _buildTabContent(),
-              ),
-              _buildSystemOverviewButton(),
-            ],
-          ),
-        ),
-      ),
-      floatingActionButton: _buildEmergencyStop(),
-    );
-  }
-
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Color(0xFF2A2A2A),
-      leading: IconButton(
-        icon: Icon(Icons.menu),
-        onPressed: () {
-          _logger.i('Opening app drawer from MachineDashboard');
-          _scaffoldKey.currentState?.openDrawer();
-        },
-      ),
-      title: Row(
+      body: Stack(
         children: [
-          Text('ALD Machine'),
-          SizedBox(width: 8),
-          _buildMachineStatus(MachineStatus.idle),
-        ],
-      ),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.notifications),
-          onPressed: () => _showAlerts(context),
-        ),
-        IconButton(
-          icon: Icon(Icons.logout),
-          onPressed: () => _handleSessionEnd(context),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMachineStatus(MachineStatus status) {
-    final colors = {
-      MachineStatus.idle: Colors.grey,
-      MachineStatus.processing: Colors.green,
-      MachineStatus.error: Colors.red,
-      MachineStatus.maintenance: Colors.orange,
-    };
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: colors[status]?.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: colors[status] ?? Colors.grey),
-      ),
-      child: Text(
-        status.toString().split('.').last.toUpperCase(),
-        style: TextStyle(
-          fontSize: 12,
-          color: colors[status],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOperatorSession() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Color(0xFF2A2A2A),
-      child: Row(
-        children: [
-          Text(
-            'Current Operator: John Doe',
-            style: TextStyle(color: Colors.white70),
-          ),
-          Spacer(),
-          Text(
-            'Session Time: 2:30',
-            style: TextStyle(color: Colors.white70),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Color(0xFF2A2A2A),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: _tabs.asMap().entries.map((entry) {
-          final isSelected = entry.key == _selectedTabIndex;
-          return InkWell(
-            onTap: () => setState(() => _selectedTabIndex = entry.key),
-            child: Container(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    entry.value.icon,
-                    color: isSelected ? Colors.blue : Colors.white54,
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    entry.value.label,
-                    style: TextStyle(
-                      color: isSelected ? Colors.blue : Colors.white54,
-                      fontSize: 12,
-                    ),
-                  ),
+          // iOS-style Status Bar Background
+          Container(
+            height: MediaQuery.of(context).padding.top + 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFE8F5E9).withOpacity(0.8),
+                  Color(0xFFE8F5E9).withOpacity(0.6),
                 ],
               ),
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
+          ),
 
-  Widget _buildTabContent() {
-    return AnimatedSwitcher(
-      duration: Duration(milliseconds: 300),
-      child: _getSelectedTabContent(),
-    );
-  }
-
-  Widget _getSelectedTabContent() {
-    switch (_selectedTabIndex) {
-      case 0:
-        return _buildOverviewTab();
-      case 1:
-        return _buildProcessTab();
-      case 2:
-        return _buildHistoryTab();
-      case 3:
-        return _buildMaintenanceTab();
-      default:
-        return SizedBox.shrink();
-    }
-  }
-
-  Widget _buildOverviewTab() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(16, 24, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOverlaySelector(),
-            SizedBox(height: 24),
-            _buildSystemDiagramWithOverlay(),
-            SizedBox(height: 24),
-            _buildParameterGrid(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSystemDiagramWithOverlay() {
-    return AspectRatio(
-      aspectRatio:
-          16 / 9, // Adjust this ratio based on your diagram's dimensions
-      child: Container(
-        decoration: BoxDecoration(
-          color: Color(0xFF2A2A2A),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-        ),
-        child: Stack(
-          children: [
-            // System diagram
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(11), // 12-1 to account for border
-                child: Image.asset(
-                  'assets/ald_system_diagram.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
+          // Main Content
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildStatusCard(theme),
+                _buildDiagramCard(theme),
+                _buildStatusGrid(theme),
+              ],
             ),
-            // Overlay content based on selected type
-            Positioned.fill(
-              child: _buildOverlayContent(),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildOverlayContent() {
-    // This will be where you implement different overlays based on _currentOverlayType
-    switch (_currentOverlayType) {
-      case OverlayType.componentControl:
-        return _buildComponentControlOverlay();
-      case OverlayType.parameterMonitor:
-        return _buildParameterMonitorOverlay();
-      case OverlayType.flowVisualization:
-        return _buildFlowVisualizationOverlay();
-    }
-  }
-
-  Widget _buildComponentControlOverlay() {
-    // Placeholder for component control overlay
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: Center(
-        child: Text(
-          'Component Control Overlay',
-          style: TextStyle(color: Colors.white70),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildParameterMonitorOverlay() {
-    // Placeholder for parameter monitor overlay
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: Center(
-        child: Text(
-          'Parameter Monitor Overlay',
-          style: TextStyle(color: Colors.white70),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFlowVisualizationOverlay() {
-    // Placeholder for flow visualization overlay
-    return Container(
-      padding: EdgeInsets.all(16),
-      child: Center(
-        child: Text(
-          'Flow Visualization Overlay',
-          style: TextStyle(color: Colors.white70),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildParameterGrid() {
-    return GridView.count(
-      physics: NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-      crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.8,
-      children: [
-        _buildParameterCard('Temperature', '200°C', '180-220°C',
-            Icons.thermostat, Colors.orange),
-        _buildParameterCard(
-            'Pressure', '2.5 mTorr', '2.0-3.0 mTorr', Icons.speed, Colors.blue),
-        _buildParameterCard(
-            'Flow Rate', '20 sccm', '15-25 sccm', Icons.waves, Colors.green),
-        _buildParameterCard(
-            'Power', '1000W', '800-1200W', Icons.bolt, Colors.purple),
-      ],
-    );
-  }
-
-  Widget _buildParameterCard(String name, String value, String range,
-      IconData icon, Color accentColor) {
+  Widget _buildStatusCard(ThemeData theme) {
     return Card(
-      elevation: 4,
-      color: Color(0xFF2A2A2A),
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: accentColor.withOpacity(0.3),
-          width: 1,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
       ),
+      elevation: 0,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              accentColor.withOpacity(0.1),
-              Colors.transparent,
+              Colors.white,
+              Color(0xFFF5F5F5).withOpacity(0.95),
+              Color(0xFFE8F5E9).withOpacity(0.2),
             ],
           ),
         ),
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Column(
+          children: [
+            // Location & Time
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                  20, MediaQuery.of(context).padding.top + 14, 20, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(
-                    icon,
-                    color: accentColor,
-                    size: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.menu, color: Colors.grey[700]),
+                        onPressed: () =>
+                            _scaffoldKey.currentState?.openDrawer(),
                       ),
-                      overflow: TextOverflow.ellipsis,
+                      Text(
+                        'ALD System Status',
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    DateFormat('HH:mm').format(_currentTime),
+                    style: TextStyle(color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+            ),
+
+            // Status Display
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Text(
+                    'IDLE',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Last Run: 2h ago',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    margin: EdgeInsets.only(left: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      'Ready',
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+
+                  // Status Icon
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle_outline,
+                          color: Colors.green,
+                          size: 32,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            ),
+
+            // System Metrics
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white,
+                        Color(0xFFF5F5F5).withOpacity(0.8),
+                        Color(0xFFF5F5F5).withOpacity(0.4),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildMetricColumn('Chamber\nPressure', '1.2e-6\nTorr'),
+                      _buildMetricColumn('Chamber\nTemp', '25.3°C'),
+                      _buildMetricColumn('Gas Flow\nRate', '20\nsccm'),
+                    ],
                   ),
                 ),
               ),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Range: $range',
-                  style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 12,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricColumn(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+            height: 1.2,
+          ),
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            height: 1.2,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDiagramCard(ThemeData theme) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        elevation: 0,
+        color: Colors.white,
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      'System Diagram',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
+                  IconButton(
+                    icon: Icon(Icons.fullscreen),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SystemOverviewScreen(),
+                        ),
+                      );
+                    },
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // ALD System Diagram
+              Container(
+                height: 280,
+                margin: EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Stack(
+                  children: [
+                    // Background Diagram
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Image.asset(
+                          'assets/ald_system_diagram_light_theme.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+
+                    // Component Labels - Distributed around the edges
+                    // N₂ Gas Flow - Far Left
+                    Positioned(
+                      left: 16,
+                      top: 100,
+                      child: _buildComponentLabel('N₂ Gas Flow', '20 sccm'),
+                    ),
+
+                    // Reaction Chamber - Top Center
+                    Positioned(
+                      left: MediaQuery.of(context).size.width * 0.25,
+                      top: 16,
+                      child:
+                          _buildComponentLabel('Reaction Chamber', '150.2°C'),
+                    ),
+
+                    // Chamber Pressure - Top Right
+                    Positioned(
+                      right: 16,
+                      top: 16,
+                      child: _buildComponentLabel(
+                          'Chamber Pressure', '1.2e-6 Torr'),
+                    ),
+
+                    // Precursor Flow - Right Middle
+                    Positioned(
+                      right: 16,
+                      top: 120,
+                      child: _buildComponentLabel('Precursor Flow', '5 sccm'),
+                    ),
+
+                    // Vacuum System - Bottom Right
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: _buildComponentLabel('Vacuum System', 'Active'),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Attribution
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
+                    SizedBox(width: 8),
+                    Text(
+                      'Real-time system visualization',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -402,615 +430,113 @@ class _MachineDashboardState extends State<MachineDashboard> {
     );
   }
 
-  Widget _buildOverlaySelector() {
+  Widget _buildComponentLabel(String title, String value) {
     return Container(
-      decoration: BoxDecoration(
-        color: Color(0xFF2A2A2A).withOpacity(0.7),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: EdgeInsets.all(8),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildOverlayButton(
-              OverlayType.componentControl,
-              'Components',
-              Icons.settings,
-            ),
-            SizedBox(width: 8),
-            _buildOverlayButton(
-              OverlayType.parameterMonitor,
-              'Parameters',
-              Icons.show_chart,
-            ),
-            SizedBox(width: 8),
-            _buildOverlayButton(
-              OverlayType.flowVisualization,
-              'Flow',
-              Icons.waves,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOverlayButton(OverlayType type, String label, IconData icon) {
-    final isSelected = type == _currentOverlayType;
-    return ConstrainedBox(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       constraints: BoxConstraints(maxWidth: 120),
-      child: ElevatedButton.icon(
-        onPressed: () => setState(() => _currentOverlayType = type),
-        icon: Icon(icon, size: 20),
-        label: Text(
-          label,
-          style: TextStyle(fontSize: 13),
-          overflow: TextOverflow.ellipsis,
-        ),
-        style: ElevatedButton.styleFrom(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          backgroundColor: isSelected ? Colors.blue : Colors.grey[800],
-          foregroundColor: isSelected ? Colors.white : Colors.white70,
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildProcessTab() {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          _buildRecipeSection(),
-          SizedBox(height: 24),
-          _buildProcessControls(),
-          SizedBox(height: 24),
-          _buildProcessProgress(),
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 11,
+            ),
+          ),
+          SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.grey[700],
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRecipeSection() {
+  Widget _buildStatusGrid(ThemeData theme) {
+    final items = [
+      {'title': 'System Health', 'value': 'Optimal'},
+      {'title': 'Last Process', 'value': '2024-03-19'},
+      {'title': 'Total Cycles', 'value': '1,234'},
+      {'title': 'Next Service', 'value': '15 days'},
+    ];
+
+    return Padding(
+      padding: EdgeInsets.all(16),
+      child: GridView.count(
+        crossAxisCount: 2,
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        children: items.map((item) => _buildStatusGridItem(item)).toList(),
+      ),
+    );
+  }
+
+  Widget _buildStatusGridItem(Map<String, String> item) {
     return Card(
-      color: Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Current Recipe',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            ListTile(
-              title: Text(
-                'TiO2 Deposition - Standard',
-                style: TextStyle(color: Colors.white),
-              ),
-              subtitle: Text(
-                '200 cycles • 2 hours estimated',
-                style: TextStyle(color: Colors.white70),
-              ),
-              trailing: IconButton(
-                icon: Icon(Icons.edit, color: Colors.blue),
-                onPressed: () {},
-              ),
-            ),
-            Divider(color: Colors.white24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildRecipeDetail('Precursor A', 'TiCl4'),
-                _buildRecipeDetail('Precursor B', 'H2O'),
-                _buildRecipeDetail('Carrier Gas', 'N2'),
-              ],
-            ),
-          ],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+      ),
+      elevation: 0,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.white,
+              Color(0xFFF5F5F5).withOpacity(0.9),
+              Color(0xFFE8F5E9).withOpacity(0.2),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(24),
         ),
-      ),
-    );
-  }
-
-  Widget _buildRecipeDetail(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: TextStyle(color: Colors.white70, fontSize: 12)),
-        SizedBox(height: 4),
-        Text(value, style: TextStyle(color: Colors.white, fontSize: 16)),
-      ],
-    );
-  }
-
-  Widget _buildProcessControls() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _buildControlButton(Icons.play_arrow, 'Start', Colors.green),
-        _buildControlButton(Icons.pause, 'Pause', Colors.orange),
-        _buildControlButton(Icons.stop, 'Stop', Colors.red),
-      ],
-    );
-  }
-
-  Widget _buildControlButton(IconData icon, String label, Color color) {
-    return ElevatedButton.icon(
-      onPressed: () {},
-      icon: Icon(icon),
-      label: Text(label),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      ),
-    );
-  }
-
-  Widget _buildProcessProgress() {
-    return Card(
-      color: Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Process Progress',
+              item['title']!,
               style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
+                fontSize: 13,
               ),
             ),
-            SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: 0.45,
-              backgroundColor: Colors.white10,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            ),
-            SizedBox(height: 8),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('90/200 cycles', style: TextStyle(color: Colors.white70)),
-                Text('45% Complete', style: TextStyle(color: Colors.white70)),
-              ],
-            ),
-            SizedBox(height: 16),
-            _buildCurrentStepIndicator(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCurrentStepIndicator() {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.timer, color: Colors.blue),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
                 Text(
-                  'Current Step: Precursor A Pulse',
+                  item['value']!,
                   style: TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 15,
+                  ),
                 ),
-                Text(
-                  'Time Remaining: 2.5s',
-                  style: TextStyle(color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    return ListView.builder(
-      padding: EdgeInsets.all(16),
-      itemCount: 10,
-      itemBuilder: (context, index) {
-        return Card(
-          color: Color(0xFF2A2A2A),
-          margin: EdgeInsets.only(bottom: 12),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ListTile(
-            contentPadding: EdgeInsets.all(16),
-            title: Row(
-              children: [
-                Text(
-                  'TiO2 Deposition #${1000 + index}',
-                  style: TextStyle(color: Colors.white),
-                ),
-                SizedBox(width: 8),
-                _buildProcessStatus(index),
-              ],
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 8),
-                Text(
-                  'Started: ${DateTime.now().subtract(Duration(days: index)).toString().split('.')[0]}',
-                  style: TextStyle(color: Colors.white70),
-                ),
-                Text(
-                  '200 cycles • 2.1 hours • Operator: John Doe',
-                  style: TextStyle(color: Colors.white70),
+                Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey[400],
+                  size: 20,
                 ),
               ],
-            ),
-            trailing: IconButton(
-              icon: Icon(Icons.chevron_right, color: Colors.white70),
-              onPressed: () {},
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildProcessStatus(int index) {
-    final statuses = [
-      'Completed',
-      'Failed',
-      'Aborted',
-      'Completed',
-      'Completed'
-    ];
-    final colors = {
-      'Completed': Colors.green,
-      'Failed': Colors.red,
-      'Aborted': Colors.orange,
-    };
-    final status = statuses[index % statuses.length];
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: colors[status]?.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: colors[status],
-          fontSize: 12,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMaintenanceTab() {
-    return ListView(
-      padding: EdgeInsets.all(16),
-      children: [
-        _buildMaintenanceStatus(),
-        SizedBox(height: 24),
-        _buildMaintenanceSchedule(),
-        SizedBox(height: 24),
-        _buildMaintenanceLogs(),
-      ],
-    );
-  }
-
-  Widget _buildMaintenanceStatus() {
-    return Card(
-      color: Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'System Health',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildHealthIndicator('Pump', 0.9, Colors.green),
-                _buildHealthIndicator('Valves', 0.75, Colors.orange),
-                _buildHealthIndicator('Sensors', 0.95, Colors.green),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHealthIndicator(String label, double value, Color color) {
-    return Column(
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            CircularProgressIndicator(
-              value: value,
-              backgroundColor: Colors.white10,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-            ),
-            Text(
-              '${(value * 100).round()}%',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
-        Text(label, style: TextStyle(color: Colors.white70)),
-      ],
-    );
-  }
-
-  Widget _buildMaintenanceSchedule() {
-    return Card(
-      color: Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Upcoming Maintenance',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            _buildMaintenanceItem(
-              'Pump Oil Change',
-              'Due in 5 days',
-              Icons.warning,
-              Colors.orange,
-            ),
-            _buildMaintenanceItem(
-              'Valve Inspection',
-              'Due in 15 days',
-              Icons.check_circle,
-              Colors.green,
-            ),
-            _buildMaintenanceItem(
-              'Sensor Calibration',
-              'Due in 30 days',
-              Icons.check_circle,
-              Colors.green,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMaintenanceItem(
-    String title,
-    String subtitle,
-    IconData icon,
-    Color color,
-  ) {
-    return ListTile(
-      leading: Icon(icon, color: color),
-      title: Text(title, style: TextStyle(color: Colors.white)),
-      subtitle: Text(subtitle, style: TextStyle(color: Colors.white70)),
-      trailing: TextButton(
-        onPressed: () {},
-        child: Text('Schedule'),
-      ),
-    );
-  }
-
-  Widget _buildMaintenanceLogs() {
-    return Card(
-      color: Color(0xFF2A2A2A),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Recent Maintenance',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 16),
-            _buildMaintenanceLogItem(
-              'Pump Maintenance',
-              'Completed on ${DateTime.now().subtract(Duration(days: 2)).toString().split(' ')[0]}',
-              'John Doe',
-            ),
-            _buildMaintenanceLogItem(
-              'Valve Replacement',
-              'Completed on ${DateTime.now().subtract(Duration(days: 15)).toString().split(' ')[0]}',
-              'Jane Smith',
-            ),
-            _buildMaintenanceLogItem(
-              'System Calibration',
-              'Completed on ${DateTime.now().subtract(Duration(days: 30)).toString().split(' ')[0]}',
-              'Mike Johnson',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMaintenanceLogItem(
-      String title, String date, String technician) {
-    return ListTile(
-      title: Text(title, style: TextStyle(color: Colors.white)),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(date, style: TextStyle(color: Colors.white70)),
-          Text('Technician: $technician',
-              style: TextStyle(color: Colors.white70)),
-        ],
-      ),
-      trailing: IconButton(
-        icon: Icon(Icons.info_outline, color: Colors.white70),
-        onPressed: () {},
-      ),
-    );
-  }
-
-  Widget _buildEmergencyStop() {
-    return FloatingActionButton(
-      backgroundColor: Colors.red,
-      child: Icon(Icons.stop_circle, size: 36),
-      onPressed: () => _showEmergencyStopDialog(),
-    );
-  }
-
-  void _showEmergencyStopDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Emergency Stop'),
-        content: Text('Are you sure you want to activate emergency stop?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Emergency Stop Activated!'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            },
-            child: Text('Stop', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAlerts(BuildContext context) {
-    // Hardcoded alerts dialog
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('System Alerts'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.warning, color: Colors.orange),
-              title: Text('Maintenance Due'),
-              subtitle: Text('Regular maintenance check required'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Close'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handleSessionEnd(BuildContext context) async {
-    try {
-      // Store the navigator state before the async operation
-      final navigator = Navigator.of(context);
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-      await authProvider.signOut();
-
-      // Check if the widget is still mounted before navigating
-      if (mounted) {
-        navigator.pushReplacementNamed('/login');
-      }
-    } catch (e) {
-      _logger.e('Error during session end: ${e.toString()}');
-      // Show error message to user if needed
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error signing out. Please try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Widget _buildSystemOverviewButton() {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SystemOverviewScreen(),
-            ),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF2C2C2C),
-          padding: EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.system_update_alt, color: Colors.white),
-            SizedBox(width: 8),
-            Text(
-              'System Overview',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
             ),
           ],
         ),
