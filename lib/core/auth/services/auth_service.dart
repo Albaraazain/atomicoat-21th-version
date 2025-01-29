@@ -46,15 +46,11 @@ class AuthService {
       await _supabase.from('users').select('id').limit(1);
       _logger.i('Users table exists');
     } catch (e) {
-      _logger.w('Users table might not exist, attempting to create it');
-      try {
-        // Create the users table if it doesn't exist
-        await _supabase.rpc('create_users_table');
-        _logger.i('Users table created successfully');
-      } catch (e) {
-        _logger.e('Failed to create users table: ${e.toString()}');
-        // Don't rethrow - we'll handle missing table gracefully
-      }
+      _logger.w(
+          'Users table might not exist, but it should be created by migrations');
+      // We don't need to create the table as it's handled by migrations
+      // Just log the error and continue
+      _logger.d('Table creation is handled by migrations: ${e.toString()}');
     }
   }
 
