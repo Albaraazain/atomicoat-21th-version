@@ -27,7 +27,6 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Security Settings'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -73,11 +72,11 @@ class _SecuritySettingsScreenState extends State<SecuritySettingsScreen> {
               onPressed: () {
                 // TODO: Implement password change
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Password updated successfully')),
+                  const SnackBar(
+                      content: Text('Password updated successfully')),
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConfig.teslaTheme.primaryColor,
                 minimumSize: const Size(double.infinity, 50),
               ),
               child: const Text('Update Password'),
