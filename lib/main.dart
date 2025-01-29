@@ -6,6 +6,7 @@ import 'dart:async';
 import 'core/auth/services/auth_service.dart';
 import 'core/services/navigation_service.dart';
 import 'core/auth/providers/auth_provider.dart';
+import 'core/providers/theme_provider.dart';
 import 'core/config/app_config.dart';
 import 'core/config/route_config.dart';
 import 'core/config/theme_config.dart';
@@ -13,6 +14,7 @@ import 'core/config/provider_config.dart';
 import 'core/config/env.dart';
 import 'core/auth/screens/login_screen.dart';
 import 'features/dashboard/screens/machine_dashboard_screen.dart';
+import 'core/navigation/root_navigation.dart';
 
 final logger = Logger(
   printer: PrettyPrinter(
@@ -202,36 +204,51 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ALD Machine Control',
-      theme: ThemeConfig.teslaTheme,
-      themeMode: ThemeMode.dark,
-      debugShowCheckedModeBanner: false,
-      navigatorKey: navigatorKey,
-      home: Consumer<AuthProvider>(
-        builder: (context, authProvider, _) {
-          if (authProvider.isLoading) {
-            return _buildLoadingScreen();
-          }
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        if (themeProvider == null || !themeProvider.isInitialized) {
+          return MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        }
 
-          if (authProvider.isAuthenticated) {
-            if (!authProvider.isApproved()) {
-              return _buildPendingApprovalScreen();
-            }
-            return _buildAuthenticatedScreen();
-          } else {
-            return LoginScreen();
-          }
-        },
-      ),
-      routes: RouteConfig.routes,
-      onGenerateRoute: RouteConfig.generateRoute,
+        return MaterialApp(
+          title: 'ALD Machine Control',
+          theme: ThemeConfig.lightTheme,
+          darkTheme: ThemeConfig.darkTheme,
+          themeMode: themeProvider.themeMode,
+          debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
+          home: Consumer<AuthProvider>(
+            builder: (context, authProvider, _) {
+              if (authProvider.isLoading) {
+                return _buildLoadingScreen();
+              }
+
+              if (authProvider.isAuthenticated) {
+                if (!authProvider.isApproved()) {
+                  return _buildPendingApprovalScreen();
+                }
+                return const RootNavigation();
+              } else {
+                return const LoginScreen();
+              }
+            },
+          ),
+          routes: RouteConfig.routes,
+          onGenerateRoute: RouteConfig.generateRoute,
+        );
+      },
     );
   }
 
   Widget _buildLoadingScreen() {
     return Scaffold(
-      backgroundColor: Color(0xFF1A1A1A),
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +264,7 @@ class MyApp extends StatelessWidget {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Colors.white,
+                color: Colors.black,
                 fontFamily: 'Poppins',
               ),
             ),
@@ -257,7 +274,7 @@ class MyApp extends StatelessWidget {
               height: 48,
               child: CircularProgressIndicator(
                 valueColor: AlwaysStoppedAnimation<Color>(
-                    ThemeConfig.teslaTheme.primaryColor),
+                    ThemeConfig.lightTheme.colorScheme.primary),
                 strokeWidth: 3,
               ),
             ),
@@ -268,7 +285,7 @@ class MyApp extends StatelessWidget {
   }
 
   Widget _buildAuthenticatedScreen() {
-    return MachineDashboard();
+    return const RootNavigation();
   }
 
   Widget _buildPendingApprovalScreen() {
