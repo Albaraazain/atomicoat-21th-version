@@ -19,7 +19,6 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -126,7 +125,8 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 8),
           ListTile(
             leading: const Icon(Icons.delete_forever, color: Colors.red),
-            title: const Text('Delete Account',
+            title: const Text(
+              'Delete Account',
               style: TextStyle(color: Colors.red),
             ),
             onTap: () {
@@ -138,7 +138,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> children}) {
+  Widget _buildSection(
+      {required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
