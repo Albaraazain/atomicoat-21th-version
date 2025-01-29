@@ -1,25 +1,31 @@
 -- Enable pgcrypto extension for password hashing
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- Backup existing tables
-CREATE TABLE IF NOT EXISTS users_backup AS SELECT * FROM users;
-CREATE TABLE IF NOT EXISTS machines_backup AS SELECT * FROM machines;
+-- Create users table if it doesn't exist
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,
+    role TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Drop existing foreign key constraints if any
-DO $$
-BEGIN
-    -- Drop any existing constraints
-    EXECUTE (
-        SELECT string_agg('ALTER TABLE ' || table_name || ' DROP CONSTRAINT ' || constraint_name, '; ')
-        FROM information_schema.table_constraints
-        WHERE constraint_type = 'FOREIGN KEY'
-        AND table_name IN ('users', 'machines')
-    );
-EXCEPTION
-    WHEN undefined_object THEN NULL;
-END $$;
+-- Create machines table if it doesn't exist
+CREATE TABLE IF NOT EXISTS machines (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL,
+    serial_number TEXT UNIQUE NOT NULL,
+    location TEXT NOT NULL,
+    machine_type TEXT NOT NULL,
+    model TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'inactive',
+    install_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
--- Create new machine_assignments table
+-- Create machine_assignments table if it doesn't exist
 CREATE TABLE IF NOT EXISTS machine_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     machine_id UUID NOT NULL,
@@ -30,17 +36,6 @@ CREATE TABLE IF NOT EXISTS machine_assignments (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(machine_id, user_id)
 );
-
--- Add status column to users if not exists
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = 'users' AND column_name = 'status'
-    ) THEN
-        ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'pending';
-    END IF;
-END $$;
 
 -- Create initial superadmin if doesn't exist
 DO $$
@@ -106,12 +101,14 @@ CREATE INDEX IF NOT EXISTS idx_machines_serial_number ON machines(serial_number)
 
 -- Add foreign key constraints
 ALTER TABLE machine_assignments
+    DROP CONSTRAINT IF EXISTS fk_machine_assignments_machine_id,
     ADD CONSTRAINT fk_machine_assignments_machine_id
     FOREIGN KEY (machine_id)
     REFERENCES machines(id)
     ON DELETE CASCADE;
 
 ALTER TABLE machine_assignments
+    DROP CONSTRAINT IF EXISTS fk_machine_assignments_user_id,
     ADD CONSTRAINT fk_machine_assignments_user_id
     FOREIGN KEY (user_id)
     REFERENCES users(id)
