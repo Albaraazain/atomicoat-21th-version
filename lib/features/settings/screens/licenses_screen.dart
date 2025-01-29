@@ -9,7 +9,6 @@ class LicensesScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Licenses'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -25,31 +24,31 @@ class LicensesScreen extends StatelessWidget {
           _buildLicenseSection(
             'Flutter',
             'Copyright 2014 The Flutter Authors. All rights reserved.\n\n'
-            'Redistribution and use in source and binary forms, with or without modification, '
-            'are permitted provided that the following conditions are met:\n\n'
-            '* Redistributions of source code must retain the above copyright '
-            'notice, this list of conditions and the following disclaimer.',
+                'Redistribution and use in source and binary forms, with or without modification, '
+                'are permitted provided that the following conditions are met:\n\n'
+                '* Redistributions of source code must retain the above copyright '
+                'notice, this list of conditions and the following disclaimer.',
           ),
           _buildLicenseSection(
             'Provider',
             'MIT License\n\n'
-            'Copyright (c) 2019 Remi Rousselet\n\n'
-            'Permission is hereby granted, free of charge, to any person obtaining a copy '
-            'of this software and associated documentation files.',
+                'Copyright (c) 2019 Remi Rousselet\n\n'
+                'Permission is hereby granted, free of charge, to any person obtaining a copy '
+                'of this software and associated documentation files.',
           ),
           _buildLicenseSection(
             'http',
             'Copyright 2014, the Dart project authors. All rights reserved.\n\n'
-            'Redistribution and use in source and binary forms, with or without '
-            'modification, are permitted provided that the following conditions are '
-            'met.',
+                'Redistribution and use in source and binary forms, with or without '
+                'modification, are permitted provided that the following conditions are '
+                'met.',
           ),
           _buildLicenseSection(
             'shared_preferences',
             'Copyright 2017 The Chromium Authors. All rights reserved.\n\n'
-            'Redistribution and use in source and binary forms, with or without '
-            'modification, are permitted provided that the following conditions are '
-            'met.',
+                'Redistribution and use in source and binary forms, with or without '
+                'modification, are permitted provided that the following conditions are '
+                'met.',
           ),
           const SizedBox(height: 16),
           TextButton(
