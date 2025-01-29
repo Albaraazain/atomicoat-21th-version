@@ -3,6 +3,7 @@ import 'package:provider/single_child_widget.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../auth/providers/auth_provider.dart';
 import '../auth/services/auth_service.dart';
+import '../providers/theme_provider.dart';
 import '../../features/components/providers/component_provider.dart';
 import '../../features/process/providers/process_provider.dart';
 import '../../features/experiments/providers/experiment_provider.dart';
@@ -26,7 +27,9 @@ class ProviderConfig {
     Provider<MachineRepository>(create: (_) => machineRepository),
     Provider<UserRepository>(create: (_) => userRepository),
     Provider<RecipeRepository>(create: (_) => recipeRepository),
-
+    ChangeNotifierProvider<ThemeProvider>(
+      create: (_) => ThemeProvider(),
+    ),
     ChangeNotifierProvider<AuthProvider>(
       create: (_) => AuthProvider(authService),
     ),
