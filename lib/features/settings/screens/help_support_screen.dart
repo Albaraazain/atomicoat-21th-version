@@ -9,7 +9,6 @@ class HelpSupportScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Help & Support'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -25,17 +24,17 @@ class HelpSupportScreen extends StatelessWidget {
           _buildExpansionTile(
             'How do I start a new experiment?',
             'To start a new experiment, go to the Experiments tab and tap the "+" button. '
-            'Follow the step-by-step guide to set up your experiment parameters.',
+                'Follow the step-by-step guide to set up your experiment parameters.',
           ),
           _buildExpansionTile(
             'How do I monitor process status?',
             'You can monitor process status in real-time through the Process Monitoring screen. '
-            'Access it from the Process tab and select the process you want to monitor.',
+                'Access it from the Process tab and select the process you want to monitor.',
           ),
           _buildExpansionTile(
             'How do I manage machine settings?',
             'Machine settings can be configured through the Machines tab. '
-            'Select a machine and use the settings icon to adjust its parameters.',
+                'Select a machine and use the settings icon to adjust its parameters.',
           ),
           const SizedBox(height: 24),
           const Text(
