@@ -12,7 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.0
-  shared_preferences: ^2.0.15
+  shared_preferences: ^2.2.2
   json_annotation: ^4.4.0
   intl: ^0.19.0
   uuid: ^4.5.0
@@ -68,9 +68,10 @@ flutter:
         - asset: assets/fonts/Poppins-Bold.ttf
           weight: 700
   assets:
-    - assets/ald_system_diagram.png
+    - assets/ald_system_diagram.svg
     - assets/initial_components.json
     - assets/atomicoat_app_icon.png
+    - assets/ald_system_diagram_light_theme.png
 
 
 flutter_icons:
