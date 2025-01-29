@@ -23,7 +23,6 @@ class _NotificationsSettingsScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: ListView(
         children: [
@@ -51,8 +50,8 @@ class _NotificationsSettingsScreenState
           const Divider(),
           SwitchListTile(
             title: const Text('Process Alerts'),
-            subtitle:
-                const Text('Receive alerts about process status and completion'),
+            subtitle: const Text(
+                'Receive alerts about process status and completion'),
             value: _processNotifications,
             onChanged: (bool value) {
               setState(() {
