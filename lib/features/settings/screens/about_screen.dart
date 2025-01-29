@@ -12,7 +12,6 @@ class AboutScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('About'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
