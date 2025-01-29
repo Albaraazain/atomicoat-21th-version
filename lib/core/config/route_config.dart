@@ -18,6 +18,7 @@ import '../../features/settings/screens/help_support_screen.dart';
 import '../../features/users/screens/user_management_screen.dart';
 import 'package:provider/provider.dart';
 import '../auth/providers/auth_provider.dart';
+import '../navigation/root_navigation.dart';
 
 class RouteConfig {
   // Auth routes
@@ -124,7 +125,8 @@ class RouteConfig {
       case machineDetailsRoute:
         return MaterialPageRoute(
           builder: (context) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final authProvider =
+                Provider.of<AuthProvider>(context, listen: false);
             if (!authProvider.isSuperAdmin) {
               return Scaffold(
                 appBar: AppBar(title: const Text('Machine Details')),
@@ -141,7 +143,8 @@ class RouteConfig {
       case machineEditRoute:
         return MaterialPageRoute(
           builder: (context) {
-            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final authProvider =
+                Provider.of<AuthProvider>(context, listen: false);
             if (!authProvider.isSuperAdmin) {
               return Scaffold(
                 appBar: AppBar(title: const Text('Edit Machine')),
