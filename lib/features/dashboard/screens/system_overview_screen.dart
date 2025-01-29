@@ -19,20 +19,20 @@ class _SystemOverviewScreenState extends State<SystemOverviewScreen> {
   @override
   void initState() {
     super.initState();
-    // Force landscape orientation
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
   void dispose() {
-    // Reset to default orientation when leaving the screen
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
     ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _pageController.dispose();
     super.dispose();
   }
@@ -40,14 +40,15 @@ class _SystemOverviewScreenState extends State<SystemOverviewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF1A1A1A),
-      body: Stack(
-        children: [
-          MultiProvider(
-            providers: [
-              ChangeNotifierProvider(create: (_) => ComponentProvider()),
-            ],
-            child: PageView(
+      backgroundColor: Colors.white,
+      body: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ComponentProvider()),
+        ],
+        child: Stack(
+          children: [
+            // Main Content
+            PageView(
               controller: _pageController,
               scrollDirection: Axis.vertical,
               onPageChanged: (index) {
@@ -60,50 +61,68 @@ class _SystemOverviewScreenState extends State<SystemOverviewScreen> {
                 GraphOverlay(overlayId: 'system_overview'),
               ],
             ),
-          ),
-          Positioned(
-            top: 16,
-            left: 16,
-            child: SafeArea(
+
+            // Back button and view toggle - positioned in top-left corner
+            Positioned(
+              left: 16,
+              top: 16,
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'System Overview',
-                    style: TextStyle(
+                  Container(
+                    decoration: BoxDecoration(
                       color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: Colors.grey[700]),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
                   SizedBox(width: 16),
-                  _buildOverlayIndicator(),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currentPage == 0 ? 'Components' : 'Graphs',
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.grey[600],
+                          size: 20,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOverlayIndicator() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          _currentPage == 0 ? 'Components' : 'Graphs',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-          ),
+          ],
         ),
-        Icon(Icons.keyboard_arrow_down, color: Colors.white),
-      ],
+      ),
     );
   }
 }
