@@ -27,7 +27,6 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Language Settings'),
-        backgroundColor: ThemeConfig.teslaTheme.primaryColor,
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,8 +69,8 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                     // TODO: Implement language change
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(
-                            'Language changed to ${language['name']}'),
+                        content:
+                            Text('Language changed to ${language['name']}'),
                       ),
                     );
                   },
@@ -87,7 +86,6 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
                 Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: ThemeConfig.teslaTheme.primaryColor,
                 minimumSize: const Size(double.infinity, 50),
               ),
               child: const Text('Apply Changes'),
